@@ -1,9 +1,9 @@
 '''
 shot_noise_NN.py
 
-TRAIN A NEURAL NETWORK TO PREDICT THE TEMPERATURE DIFFERENCE BASED ON CONDUCTANCE, SHOT NOISE, AND AVERAGE TEMPERATURE DATA FROM DELTA T SHOT NOISE EXPERIMENTS.
+Train a neural network to predict the temperature difference based on conductance, shot noise, and average temperature data from delta t shot noise experiments.
 
-ADAPTED FROM JOANNA LI'S CODE ON THE SAME PROJECT.
+Adapted from joanna li's code on the same project.
 
 Matthew Gerry, August 2024
 '''
