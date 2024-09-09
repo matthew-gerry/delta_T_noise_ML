@@ -3,6 +3,8 @@ channel_analysis.py
 
 Calculate the channel transmissions based on the values of G and S when G<G_0, assuming there are only two channels with nonzero transmission (argued based on the low overall conductance).
 
+Also fit the G<G_0 data to a quadratic as an additional way of quantifying the sequential opening.
+
 Assess whether the manner in which the channels open sequentially varies at all with temperature.
 
 Matthew Gerry, September 2024
@@ -47,7 +49,11 @@ def channel_transmission(G, S, T, DeltaT):
     
     except: # sqrt will throw an error in the case that the solutions are complex
         return None, None
-        
+    
+def s_model(g, x):
+    ''' THE RELATIONSHIP BETWEEN NON-DIMENSIONALIZED s AND g, ASSUMING TWO CHANNELS AND A FIXED x '''
+    return g*(1 - [2*x**2 + 2*x - 1]*g)
+
 
 ### MAIN CALLS ###
 
