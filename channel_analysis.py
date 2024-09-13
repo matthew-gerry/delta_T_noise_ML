@@ -54,13 +54,16 @@ def s_model(g, y):
     ''' THE RELATIONSHIP BETWEEN NON-DIMENSIONALIZED s AND g '''
     return g*(1 - y*g)
 
+def s_linear(g, m):
+    ''' LEARN THE SLOPE OF THE OVERALL ACCUMULATION OF s WITH INCREASING g '''
+    return m*(g-1)
 
 ### MAIN CALLS ###
 
 df = pd.read_csv('../GNoiseData_complete.csv')
-df = df[df['G']<=1] # Keep only data for which G < G_0
+df = df[df['G']<=1] 
 
-df2 = df.copy() # Dataframe for dual-channel analysis
+df2 = df[df['G']<=1] # Dataframe for dual-channel analysis, keep only data for which G < G_0
 
 # Add columns to the dataframe for the values we will derive
 df2.insert(4, "tau1", None)
@@ -108,7 +111,7 @@ plt.show()
 
 
 # Fit S - G data to a parabola - just one temperature value for now
-df3 = df.copy()
+df3 = df[df['G']<=1]
 df3 = df3[df3['T']==21.5] # Carry data points with specific T
 
 df3['s'] = df3['S']/(G0 * kB * (pi**2/9 - 2/3) * df3['DeltaT']**2 / df3['T'])
@@ -122,4 +125,23 @@ plt.scatter(df3['G'], df3['s'])
 plt.plot(df3['G'], s_model(df3['G'], popt[0]), color='orange')
 plt.xlabel("$G/G_0$")
 plt.ylabel("$S/G_0k_BT$")
+plt.show()
+
+
+# Fit S - G data to a line for G>G_0 to try and infer the limit to which channels after the first open and then stop
+dflin = df[df['G'] >= 1]
+dflin['s'] = dflin['S']/(G0 * kB * (pi**2/9 - 2/3) * dflin['DeltaT']**2 / dflin['T'])
+
+# Helps to remove outliers for the fit
+dflin = dflin[dflin['s'] > 0]
+dflin = dflin[dflin['s'] < 5]
+
+dflin = dflin.sort_values('G')
+
+popt_lin, pcov_lin = curve_fit(s_linear, dflin['G'], dflin['s'])
+print(popt_lin[0])
+
+
+plt.plot(dflin['G'], dflin['s'], marker='.')
+plt.plot(dflin['G'], s_linear(dflin['G'], popt_lin[0]), color='orange')
 plt.show()
