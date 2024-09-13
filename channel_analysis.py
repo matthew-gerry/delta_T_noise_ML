@@ -19,7 +19,7 @@ from scipy.optimize import curve_fit
 
 ### CONSTANTS ###
 
-G0 = 7.748092*10**(-5) # C^2/Js, quantum of conductance
+G0 = 7.748092*10**(-5) # C^2/Js, conductance quantum
 kB = 1.380649*10**(-23) # J/K, Boltzmann constant
 
 ### FUNCTIONS ###
