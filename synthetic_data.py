@@ -174,29 +174,33 @@ plt.show()
 
 
 
-## Visualize the channel-opening protocol
-# g_list = np.arange(0, 4, 0.1)
-# tau0, tau1, tau2, tau3, tau4, tau5, tau6, sumtau = np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list))
+# Visualize the channel-opening protocol
+g_list = np.arange(0, 4, 0.1)
+tau0, tau1, tau2, tau3, tau4, tau5, tau6, sumtau = np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list)), np.zeros(len(g_list))
 
-# for i in range(len(g_list)):
-#     tau_array = get_tau(g_list[i], 0.1, 0.5)
+for i in range(len(g_list)):
+    tau_array = get_tau(g_list[i], 0.1, 0.75)
 
-#     tau0[i] = tau_array[0]
-#     tau1[i] = tau_array[1]
-#     tau2[i] = tau_array[2]
-#     tau3[i] = tau_array[3]
-#     tau4[i] = tau_array[4]
-#     tau5[i] = tau_array[5]
-#     tau6[i] = tau_array[6]
+    tau0[i] = tau_array[0]
+    tau1[i] = tau_array[1]
+    tau2[i] = tau_array[2]
+    tau3[i] = tau_array[3]
+    tau4[i] = tau_array[4]
+    tau5[i] = tau_array[5]
+    tau6[i] = tau_array[6]
 
-#     sumtau[i] = sum(tau_array)
+    sumtau[i] = sum(tau_array)
 
 
-# plt.plot(g_list, tau0)
-# plt.plot(g_list, tau1)
-# plt.plot(g_list, tau2)
-# plt.plot(g_list, tau3)
-# plt.plot(g_list, tau4)
-# plt.plot(g_list, tau5)
-# plt.plot(g_list, tau6)
-# plt.show()
+plt.plot(g_list, tau0)
+plt.plot(g_list, tau1)
+plt.plot(g_list, tau2)
+plt.plot(g_list, tau3)
+plt.plot(g_list, tau4)
+plt.plot(g_list, tau5)
+plt.plot(g_list, tau6)
+plt.xlabel("$G$")
+plt.ylabel(r"$\tau_n$")
+plt.ylim([0, 1.05])
+plt.xlim([0, 3.5])
+plt.show()
