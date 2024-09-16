@@ -15,10 +15,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 import tensorflow as tf
-import tensorflow.keras.models as km
-import tensorflow.keras.layers as kl
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import LearningRateScheduler
+from tensorflow import keras
+from keras import models as km
+from keras import layers as kl
 
 
 ### CONSTANTS ###
@@ -29,7 +28,7 @@ kB = 1.380649*10**(-23) # J/K, Boltzmann constant
 
 ### FUNCTIONS ###
 
-def build_model_fNN(num_nodes, d_rate=0.4, input_dim=2):
+def build_model_fNN(num_nodes, d_rate=0.3, input_dim=2):
     ''' BUILD A MODEL OF A FEEDFORWARD NEURAL NETWORK. FIRST ARGUMENT IS A LIST SPECIFYING THE NUMBER OF NODES IN EACH LAYER--THIS FUNCTION WILL INFER THE NUMBER OF HIDDEN LAYERS TO BE THE LENGTH OF THIS LIST. '''
 
     model = km.Sequential() # Initialize model
@@ -110,11 +109,11 @@ loss_fn = tf.keras.losses.MeanAbsoluteError(reduction="sum_over_batch_size")
 # loss_fn(Y[:1], prediction).numpy()
 
 # compile model
-callback = LearningRateScheduler(scheduler) # Define callback to include schedule function to modulate learning rate, if desired
-model.compile(optimizer = Adam(),
+callback = keras.callbacks.LearningRateScheduler(scheduler) # Define callback to include schedule function to modulate learning rate, if desired
+model.compile(optimizer = keras.optimizers.Adam(),
               loss=loss_fn,
               metrics=['MeanSquaredError','RootMeanSquaredError'])
-model.fit(X_train, y_train, epochs=100, verbose = 2, callbacks=[])
+model.fit(X_train, y_train, epochs=50, verbose=2, callbacks=[])
 
 # Get delta T predictions from the model, multiply by T to undo scaling
 y_predicted_train = model.predict(X_train)[:,0]
