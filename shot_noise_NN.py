@@ -77,15 +77,20 @@ def half_max_unique_val(unique_val, true_vals, predicted_vals):
 ### MAIN CALLS ###
 
 # Read delta T shot noise data
-df = pd.read_csv('../GNoiseData_complete.csv')
+df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise.csv')
+df_test = pd.read_csv('../GNoiseData_complete.csv')
 
 # Rescale data (G already scaled by G0)
-df['DeltaT'] = df['DeltaT']/df['T']
-df['S'] = df['S']/(g0 * kB * df['T'])
+df_train['DeltaT'] = df_train['DeltaT']/df_train['T']
+df_train['S'] = df_train['S']/(g0 * kB * df_train['T'])
+
+df_test['DeltaT'] = df_test['DeltaT']/df_test['T']
+df_test['S'] = df_test['S']/(g0 * kB * df_test['T'])
+
 
 # Train/test split (80 % of data in training set)
-df_train = df.sample(frac=0.9, random_state=2)
-df_test = df.drop(df_train.index)
+# df_train = df.sample(frac=0.9, random_state=2)
+# df_test = df.drop(df_train.index)
 
 # Set up numpy arrays for use with Keras network
 X_train = df_train.drop(['DeltaT','T'], axis=1).to_numpy()
@@ -97,7 +102,7 @@ y_test= df_test['DeltaT'].to_numpy()
 T_test = df_test['T'].to_numpy() # Save average temperature values in a separate array
 
 # Build the model
-model = build_model_fNN([10])
+model = build_model_fNN([3])
 # print(model.summary())
 
 # loss function
@@ -109,7 +114,7 @@ callback = LearningRateScheduler(scheduler) # Define callback to include schedul
 model.compile(optimizer = Adam(),
               loss=loss_fn,
               metrics=['MeanSquaredError','RootMeanSquaredError'])
-model.fit(X_train, y_train, epochs=30, verbose = 2, callbacks=[])
+model.fit(X_train, y_train, epochs=100, verbose = 2, callbacks=[])
 
 # Get delta T predictions from the model, multiply by T to undo scaling
 y_predicted_train = model.predict(X_train)[:,0]
