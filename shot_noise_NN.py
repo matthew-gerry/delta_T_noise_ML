@@ -28,11 +28,14 @@ kB = 1.380649*10**(-23) # J/K, Boltzmann constant
 
 ### FUNCTIONS ###
 
-def build_model_fNN(num_nodes, d_rate=0.3, input_dim=2):
+def build_model_fNN(num_nodes, d_rate=0.2, input_dim=2):
     ''' BUILD A MODEL OF A FEEDFORWARD NEURAL NETWORK. FIRST ARGUMENT IS A LIST SPECIFYING THE NUMBER OF NODES IN EACH LAYER--THIS FUNCTION WILL INFER THE NUMBER OF HIDDEN LAYERS TO BE THE LENGTH OF THIS LIST. '''
 
     model = km.Sequential() # Initialize model
     model.add(kl.InputLayer(shape=(input_dim,), activation="relu")) # Add input layer
+
+    model.add(kl.Normalization(axis=None, mean=None, variance=None))
+
 
     for num in num_nodes: # Add a dense layer with dropout for each number of nodes specified
         model.add(kl.Dense(num, activation="tanh"))
@@ -75,6 +78,8 @@ def half_max_unique_val(unique_val, true_vals, predicted_vals):
 
 ### MAIN CALLS ###
 
+save_predictions = True
+
 # Read delta T shot noise data
 df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise.csv')
 df_test = pd.read_csv('../GNoiseData_complete.csv')
@@ -101,7 +106,7 @@ y_test= df_test['DeltaT'].to_numpy()
 T_test = df_test['T'].to_numpy() # Save average temperature values in a separate array
 
 # Build the model
-model = build_model_fNN([3])
+model = build_model_fNN([5])
 # print(model.summary())
 
 # loss function
@@ -147,31 +152,46 @@ plt.title('Testing set')
 plt.plot([0,30], [0,30])
 plt.text(5,-0.03,f'MAE={round(np.mean(np.abs( deltaT_predicted_test-deltaT_test)),2)}')
 
-try:
-    # Plot means and error bars based on binning of the predicted values at each true value and calculating the FWHM (training data)
-    unique_dT_vals = np.unique(deltaT_train) # Identify unique values
-    plt.subplot(1,2,1)
-    for unique_dT in unique_dT_vals:
+
+# Plot means and error bars based on binning of the predicted values at each true value and calculating the FWHM (training data)
+unique_dT_vals = np.unique(deltaT_train) # Identify unique values
+plt.subplot(1,2,1)
+for unique_dT in unique_dT_vals:
+    try:
         # Identify peak value and values at both half maxes of delta T
         pred_max, neg_err, pos_err = half_max_unique_val(unique_dT,  deltaT_train, deltaT_predicted_train) 
 
         # Plot a point with error bars representing the FWHM amongst predicted value at each true value of delta T
         plt.errorbar(unique_dT, pred_max, yerr=np.array([[neg_err, pos_err]]).T, capsize=3, fmt="r--o", ecolor = "black")
-except:
-    True
+    except:
+        True
 
-try:
-    # plot means and error bars for the test data
-    unique_dT_vals = np.unique(deltaT_test)
 
-    plt.subplot(1,2,2)
-    for unique_dT in unique_dT_vals:
+# plot means and error bars for the test data
+unique_dT_vals = np.unique(deltaT_test)
+
+plt.subplot(1,2,2)
+for unique_dT in unique_dT_vals:
+    try:
     # Identify peak value and values at both half maxes of delta T based on the test data
         pred_max, neg_err, pos_err = half_max_unique_val(unique_dT,  deltaT_test, deltaT_predicted_test) 
 
         # Plot a point with error bars representing the FWHM amongst predicted value at each true value of delta T
         plt.errorbar(unique_dT, pred_max, yerr=np.array([[neg_err, pos_err]]).T, capsize=3, fmt="r--o", ecolor = "black")
-except:
-    True
+    except:
+        True
 
 plt.show()
+
+if save_predictions:
+    # Undo scaling of Delta T by T
+    df_train['DeltaT'] = df_train['DeltaT']*df_train['T']
+    df_test['DeltaT'] = df_test['DeltaT']*df_test['T']
+
+    # Save predicted Delta T values to the DataFrame
+    df_train['DeltaT_predicted'] = deltaT_predicted_train
+    df_test['DeltaT_predicted'] = deltaT_predicted_test
+
+    # Write to csv
+    df_train.to_csv("../training_data_with_prediction_sample.csv")
+    df_test.to_csv("../testing_data_with_prediction_sample.csv")
