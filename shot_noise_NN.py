@@ -47,33 +47,11 @@ def build_model_fNN(num_nodes, d_rate=0.2, input_dim=2):
 
 
 def scheduler(epoch, lr):
-    ''' ADAPTIVELY ADJUST THE LEARNING RATE DURING TRAINING '''
+    ''' ADAPTIVELY ADJUST THE LEARNING RATE DURING TRAINING (OPTIONAL) '''
     if epoch < 10:
         return float(lr)
     else:
         return float(lr * tf.math.exp(-0.02))
-
-
-def half_max_unique_val(unique_val, true_vals, predicted_vals):
-    ''' CALCULATE THE FWHM OF PREDICTED VALUES CORRESPONDING TO A GIVEN UNIQUE TRUE VALUE IN THE DATA. OUTPUT THE VALUES CORRESPONDING TO BOTH HALF MAXES AS WELL AS THE PEAK '''
-
-    indices = np.where(true_vals==unique_val) # Indices assocaited with instances of a particular true value
-    predictions_at_val = predicted_vals[indices] # All predictions made corresponding to that true value
-    counts, bins = np.histogram(predictions_at_val, bins=100) # Bin the predictions to approximate peak and width
-    max_ind = np.argmax(counts)
-    max = counts[max_ind] # Maximum number of counts in a bin
-    pred_max = (bins[max_ind] + bins[max_ind+1])/2 # Central value of the bin representing the peak
-
-    half_max = max/2 # Number of counts associated with half max
-    # Two lists of positive values with minima at the lower and upper half-max Delta T values, respectively
-    lower_half = np.absolute(counts[0:max_ind]-half_max)
-    upper_half = np.absolute(counts[max_ind:-1]-half_max)
-
-    # Distance of each half max point to the peak
-    neg_err = pred_max - (bins[np.argmin(lower_half)] + bins[np.argmin(lower_half) + 1])/2
-    pos_err = (bins[max_ind + np.argmin(upper_half)] + bins[max_ind + np.argmin(upper_half) + 1])/2-pred_max
-
-    return pred_max, neg_err, pos_err
 
 
 ### MAIN CALLS ###
@@ -83,6 +61,7 @@ save_predictions = True
 # Read delta T shot noise data
 df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise.csv')
 df_test = pd.read_csv('../GNoiseData_complete.csv')
+df_test = df_test[df_test['DeltaT']>0.5] # For now, drop the experimental data points with deltaT close to 0 - this case is not handled in the synthetic training data
 
 # Rescale data (G already scaled by G0)
 df_train['DeltaT'] = df_train['DeltaT']/df_train['T']
@@ -91,8 +70,7 @@ df_train['S'] = df_train['S']/(g0 * kB * df_train['T'])
 df_test['DeltaT'] = df_test['DeltaT']/df_test['T']
 df_test['S'] = df_test['S']/(g0 * kB * df_test['T'])
 
-
-# Train/test split (80 % of data in training set)
+# Train/test split (80 % of data in training set) - commented out when we use split by synthetic/experimental instead
 # df_train = df.sample(frac=0.9, random_state=2)
 # df_test = df.drop(df_train.index)
 
@@ -107,7 +85,7 @@ T_test = df_test['T'].to_numpy() # Save average temperature values in a separate
 
 # Build the model
 model = build_model_fNN([5])
-# print(model.summary())
+print(model.summary())
 
 # loss function
 loss_fn = tf.keras.losses.MeanAbsoluteError(reduction="sum_over_batch_size")
@@ -124,74 +102,25 @@ model.fit(X_train, y_train, epochs=50, verbose=2, callbacks=[])
 y_predicted_train = model.predict(X_train)[:,0]
 deltaT_predicted_train = y_predicted_train*T_train
 
-# Re-calculate also the true Delta T values, unscaled
-deltaT_train = y_train*T_train # All true delta T values
-
-# Plot the predicted vs true values from the training set
-plt.figure()
-plt.subplot(1,2,1)
-plt.scatter(deltaT_train, deltaT_predicted_train, alpha=0.15) # undo scaling
-plt.xlabel('True ∆T')
-plt.ylabel('Predicted ∆T')
-plt.title('Training set')
-plt.plot([0,30], [0,30])
-plt.text(5,-0.03,f'MAE={round(np.mean(np.abs(deltaT_predicted_train - deltaT_train)),2)}')
-
 
 # On the other subplot, plot the true and predicted values based on the test data
 # Similarly pass the testing data features through the model and remove the scaling, recover the true values
 y_predicted_test = model.predict(X_test)[:,0]
 deltaT_predicted_test = y_predicted_test*T_test
-deltaT_test = y_test*T_test
-
-plt.subplot(1,2,2)
-plt.scatter(deltaT_test, deltaT_predicted_test, alpha=0.25) # Undo scaling
-plt.xlabel('True ∆T')
-#plt.ylabel('Predicted ∆T')
-plt.title('Testing set')
-plt.plot([0,30], [0,30])
-plt.text(5,-0.03,f'MAE={round(np.mean(np.abs( deltaT_predicted_test-deltaT_test)),2)}')
 
 
-# Plot means and error bars based on binning of the predicted values at each true value and calculating the FWHM (training data)
-unique_dT_vals = np.unique(deltaT_train) # Identify unique values
-plt.subplot(1,2,1)
-for unique_dT in unique_dT_vals:
-    try:
-        # Identify peak value and values at both half maxes of delta T
-        pred_max, neg_err, pos_err = half_max_unique_val(unique_dT,  deltaT_train, deltaT_predicted_train) 
+# Undo scaling of Delta T by T
+df_train['DeltaT'] = df_train['DeltaT']*df_train['T']
+df_test['DeltaT'] = df_test['DeltaT']*df_test['T']
 
-        # Plot a point with error bars representing the FWHM amongst predicted value at each true value of delta T
-        plt.errorbar(unique_dT, pred_max, yerr=np.array([[neg_err, pos_err]]).T, capsize=3, fmt="r--o", ecolor = "black")
-    except:
-        True
+# Similarly undo scaling of S
+df_train['S'] = df_train['S'] * (g0 * kB * df_train['T'])
+df_test['S'] = df_test['S'] * (g0 * kB * df_test['T'])
 
+# Save predicted Delta T values to the DataFrame
+df_train['DeltaT_pred'] = deltaT_predicted_train
+df_test['DeltaT_pred'] = deltaT_predicted_test
 
-# plot means and error bars for the test data
-unique_dT_vals = np.unique(deltaT_test)
-
-plt.subplot(1,2,2)
-for unique_dT in unique_dT_vals:
-    try:
-    # Identify peak value and values at both half maxes of delta T based on the test data
-        pred_max, neg_err, pos_err = half_max_unique_val(unique_dT,  deltaT_test, deltaT_predicted_test) 
-
-        # Plot a point with error bars representing the FWHM amongst predicted value at each true value of delta T
-        plt.errorbar(unique_dT, pred_max, yerr=np.array([[neg_err, pos_err]]).T, capsize=3, fmt="r--o", ecolor = "black")
-    except:
-        True
-
-plt.show()
-
-if save_predictions:
-    # Undo scaling of Delta T by T
-    df_train['DeltaT'] = df_train['DeltaT']*df_train['T']
-    df_test['DeltaT'] = df_test['DeltaT']*df_test['T']
-
-    # Save predicted Delta T values to the DataFrame
-    df_train['DeltaT_predicted'] = deltaT_predicted_train
-    df_test['DeltaT_predicted'] = deltaT_predicted_test
-
-    # Write to csv
-    df_train.to_csv("../training_data_with_prediction_sample.csv")
-    df_test.to_csv("../testing_data_with_prediction_sample.csv")
+# Write to csv
+df_train.to_csv("../training_data_with_prediction_example.csv")
+df_test.to_csv("../testing_data_with_prediction_example.csv")
