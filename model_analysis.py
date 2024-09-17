@@ -43,7 +43,6 @@ def half_max_unique_val(unique_val, true_vals, predicted_vals):
 df_train = pd.read_csv('../training_data_with_prediction_example.csv')
 df_test = pd.read_csv('../testing_data_with_prediction_example.csv')
 
-
 # Plot the predicted vs true values from the training set
 plt.figure()
 plt.subplot(1,2,1)
@@ -103,11 +102,8 @@ if plot_errorbars:
         except:
             True
 
-# plt.show()
-
 
 # Now plot histograms of the predicted values at a selection of true values, for both training and test sets
-
 # Choose a set of indices at which to select out unique delta T values (training data)
 dT_indices_train = [0, 6, 12, 18, 24, 29]
 
@@ -141,10 +137,7 @@ for i in range(len(dT_indices_test)):
     axs[int(i>2),i%3].set_ylim([0, 1.1*max(hg[0])])
     axs[int(i>2),i%3].set_title("$\Delta T = "+str(round(dT, 2))+r", \langle \Delta T_{pred}\rangle = $"+str(round(prediction_mean, 1)))
 
-
 fig3.suptitle("Experimental data - performance on testing set")
-# plt.show()
-
 
 
 plt.show()
