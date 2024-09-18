@@ -28,7 +28,7 @@ kB = 1.380649*10**(-23) # J/K, Boltzmann constant
 
 ### FUNCTIONS ###
 
-def build_model_fNN(num_nodes, d_rate=0.2, input_dim=2):
+def build_model_fNN(num_nodes, d_rate=0.3, input_dim=2):
     ''' BUILD A MODEL OF A FEEDFORWARD NEURAL NETWORK. FIRST ARGUMENT IS A LIST SPECIFYING THE NUMBER OF NODES IN EACH LAYER--THIS FUNCTION WILL INFER THE NUMBER OF HIDDEN LAYERS TO BE THE LENGTH OF THIS LIST. '''
 
     model = km.Sequential() # Initialize model
@@ -84,7 +84,7 @@ y_test= df_test['DeltaT'].to_numpy()
 T_test = df_test['T'].to_numpy() # Save average temperature values in a separate array
 
 # Build the model
-model = build_model_fNN([5])
+model = build_model_fNN([6])
 print(model.summary())
 
 # loss function

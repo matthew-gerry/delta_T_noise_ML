@@ -62,7 +62,50 @@ def get_tau(G, x, tau_max):
     return tau
 
 
-def generate_data(num, Gmax, x_av, tau_max_lower, tau_max_upper):
+def get_tau_2(G, x, tau_max):
+    '''
+    ANALOGOUS TO get_tau BUT EACH CHANNEL OPENS TO A DIFFERENT MAXIMUM VALUE.
+    THE ARGUMENT tau_max IS NOW A DESCENDING LIST OF MAXIMUM TRANSMISSION VALUES. THE LAST VALUE IN THE LIST WILL BE THE MAXIMUM TRANSMISSION FOR ALL SUBSEQUENT CHANNELS.
+    '''
+
+    # Assume there can be up to four additional channels that can open up to the smallest tau_max value
+    tau_max = tau_max + 4*[tau_max[-1]]
+    
+    # Initialize array for output - add the possibility for two more partially open channels
+    tau = np.zeros(len(tau_max) + 2)
+
+    if x < 0 or x > 0.5:
+        raise ValueError("x must be between 0 and 0.5.")
+    if G > sum(tau_max):
+        raise ValueError("The function to generate tau values assumes there are no more than four relevant channels with the minimum max transmission. Choose a smaller conductance value.")
+    if G < 0:
+        raise ValueError("Negative values of G are unphysical.")
+    if sum([int(t < 0) for t in tau_max]) > 0 or sum([int(t > 1) for t in tau_max]) > 0:
+        raise ValueError("All values in tau_max must be numbers between 0 and 1.")
+    if sum([int(tau_max[i] < tau_max[i+1]) for i in range(len(tau_max) - 1)]) > 0:
+        raise ValueError("tau_max must be in descending order.")
+
+    # Figure out which channels are fully and partially open
+    cumtaumax = np.cumsum(tau_max)
+    N = len(cumtaumax[cumtaumax < G]) # Number of channels whose max transmissions sum up to a value less than the current G
+    # As we will see below, N determines the number of open channels
+    if N >= 1:
+        lowsum = max(cumtaumax[cumtaumax < G]) # Largest cumulative sum of tau_max values less than the current G
+
+    if N == 0: # Below the first tau_max, two channels are partially open
+        tau[0] = (1 - x) * G
+        tau[1] = x * G
+    else: # Otherwise, three channels are partially open and all channels below (if any) are fully open
+        for i in range(N - 1):
+            tau[i] = tau_max[i]
+        tau[N - 1] = tau_max[N - 1] * (1 - x) + (G - lowsum) * x * (tau_max[N - 1]/tau_max[N])
+        tau[N] = tau_max[N - 1] * x + (G - lowsum) * (1 - x - x * tau_max[N - 1]/tau_max[N])
+        tau[N + 1] = (G - lowsum) * x
+
+    return tau
+
+
+def generate_data(num, Gmax, x_av, tau_max_list):
     ''' GENERATE A SET OF DIMENSIONLESS s VALUES BASED ON RANDOMLY SAMPLED G, x, AND tau_max '''
 
     s_data = np.zeros(num) # Initialize array to hold the generated data
@@ -77,10 +120,9 @@ def generate_data(num, Gmax, x_av, tau_max_lower, tau_max_upper):
         while x > 0.5: # Sample an exponential distribution to get x, throw out if greater than 0.5
             x = -x_av*np.log(np.random.uniform())
 
-        # tau_max = 0.5 # For now, just set tau_max constant
-        tau_max = np.random.uniform(tau_max_lower, tau_max_upper)
+        # tau_max = np.random.uniform(tau_max_lower, tau_max_upper)
 
-        tau = get_tau(G, x, tau_max)
+        tau = get_tau_2(G, x, tau_max_list)
         s_data[i] = sum(np.multiply(tau, 1-tau))
 
         i += 1
@@ -98,13 +140,14 @@ def full_S(s, T, deltaT):
 np.random.seed(1) # Set random seed for reproducibility
 
 # Set paramaters for generating data
-Gmax = 8.0 # Maximum conductance (scaled by G_0)
+Gmax = 4.0 # Maximum conductance (scaled by G_0)
 x_av = 0.1 # Average value of quantity x characterizing channel opening
 num_points_at_temp = 500 # Number of data points to generate at each T, delta T pair
 
 # Lower and upper bounds on the randomly sampled value of tau_max
-tau_max_lower = 0.65
-tau_max_upper = 0.9
+# tau_max_lower = 0.65
+# tau_max_upper = 0.9
+tau_max_list = [1, 0.8, 0.6, 0.4]
 
 # Set parameters for the generation of T-deltaT pairs
 Tmin = 10 # Minimum temperature value
@@ -129,7 +172,7 @@ for i in range(len(T_vals)):
     deltaT = deltaT_vals[i]
 
     # Generate a bunch of non-dimensionalized G and s data
-    G, s = generate_data(num_points_at_temp, Gmax, x_av, tau_max_lower, tau_max_upper)
+    G, s = generate_data(num_points_at_temp, Gmax, x_av, tau_max_list)
 
     # Map the shot noise to the corresponding dimensionful quantity
     S = full_S(s, T_vals[i], deltaT_vals[i])
@@ -180,12 +223,12 @@ plt.show()
 
 # Visualize the channel-opening protocol
 G_list = np.arange(0, 4, 0.1) # List of G values for horizontal axis
-tau_result = np.zeros([30, len(G_list)]) # Initialize arrays to hold results
-sumtau = np.zeros(len(G_list))
+tau_result = np.zeros([10, len(G_list)]) # Initialize arrays to hold results
+sumtau = np.zeros(len(G_list)) # To check that all the tau's sum up to G
 
 for i in range(len(G_list)): # Calculate the list of taus at every value of G
-    tau_result[:, i] = get_tau(G_list[i], 0.1, 0.75)
-    sumtau = sum(tau_result[:, i])
+    tau_result[:, i] = get_tau_2(G_list[i], 0.1, [1, 0.8, 0.6, 0.4])
+    sumtau[i] = sum(tau_result[:, i])
 
 # Plot each channel's transmission as a separate curve
 fig, ax = plt.subplots()
@@ -194,5 +237,5 @@ for i in range(len(tau_result[:, 0])):
 ax.set_xlabel("$G$")
 ax.set_ylabel(r"$\tau_n$")
 ax.set_ylim([0, 1.05])
-ax.set_xlim([0, 3.5])
+ax.set_xlim([0, 3.9])
 plt.show()
