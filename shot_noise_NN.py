@@ -63,16 +63,16 @@ df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise.csv')
 df_test = pd.read_csv('../GNoiseData_complete.csv')
 df_test = df_test[df_test['DeltaT']>0.5] # For now, drop the experimental data points with deltaT close to 0 - this case is not handled in the synthetic training data
 
+# Train/test split (80 % of data in training set) - commented out when we use split by synthetic/experimental instead
+# df_train = df.sample(frac=0.9, random_state=2)
+# df_test = df.drop(df_train.index)
+
 # Rescale data (G already scaled by G0)
 df_train['DeltaT'] = df_train['DeltaT']/df_train['T']
 df_train['S'] = df_train['S']/(g0 * kB * df_train['T'])
 
 df_test['DeltaT'] = df_test['DeltaT']/df_test['T']
 df_test['S'] = df_test['S']/(g0 * kB * df_test['T'])
-
-# Train/test split (80 % of data in training set) - commented out when we use split by synthetic/experimental instead
-# df_train = df.sample(frac=0.9, random_state=2)
-# df_test = df.drop(df_train.index)
 
 # Set up numpy arrays for use with Keras network
 X_train = df_train.drop(['DeltaT','T'], axis=1).to_numpy()

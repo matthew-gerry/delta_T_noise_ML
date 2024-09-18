@@ -129,10 +129,37 @@ def generate_data(num, Gmax, x_av, tau_max_list):
     
     return G_data, s_data
 
-def full_S(s, T, deltaT):
-    ''' FROM THE NON-DIMENSIONALIZED s VALUE, RETURN THE VALUE OF THE SHOT NOISE WITH UNITS OF CHARGE^2/TIME '''    
+
+def approx_S(s, T, deltaT):
+    ''' FROM THE NON-DIMENSIONALIZED s VALUE, RETURN THE VALUE OF THE SHOT NOISE WITH UNITS OF CHARGE^2/TIME, BASED ON THE LEADING ORDER APPROXIMATION IN T '''    
     return s * (np.pi**2/9 - 2/3) * G0 * kB * (deltaT**2) / T
+
+
+def fermi(E, mu, T):
+    ''' FERMI-DIRAC DISTRIBUTION, ENERGY GIVEN IN UNITS OF TEMPERATURE (ENERGY DIVIDED BY kB) '''
+    return 1/(1 + np.exp((E - mu)/T))
+
+
+def full_S(s, T, deltaT):
+    ''' FULL VALUE OF S FROM NON-DIMENSIONALIZED s BASED ON THE FULL INTEGRAL EXPRESSION, ASSUMING NO CHEMICAL POTENTIAL DIFFERENCE BETWEEN THE LEADS '''
     
+    # Parameters for the integration - cover the whole region where the difference between fermi functions is considerably nonzero
+    # Energy parameters here are actually E/kB (therefore in units of temperature)
+    dE = 0.01
+    bounds = [-350, 350]
+    E = np.arange(bounds[0], bounds[1], dE) # Energy axis over which to integrate
+
+    # Get the temperatures of the hot and cold leads
+    Thot = T + 0.5*deltaT; Tcold = T - 0.5*deltaT
+
+    # Calculate the fermi functions
+    fhot = fermi(E, 0, Thot); fcold = fermi(E, 0, Tcold)
+
+    # Carry out the integration, multiply factor of kB due to scaling of energy values used in calculating the fermi functions
+    integrand = fhot * (1 - fcold) + fcold * (1 - fhot)
+    S = s * 2 * G0 * kB * dE * sum(integrand) # Multiply by the factor associated with the channel transmissions as well
+    return S
+
 
 ### MAIN CALLS ###
 
@@ -175,7 +202,8 @@ for i in range(len(T_vals)):
     G, s = generate_data(num_points_at_temp, Gmax, x_av, tau_max_list)
 
     # Map the shot noise to the corresponding dimensionful quantity
-    S = full_S(s, T_vals[i], deltaT_vals[i])
+    S = approx_S(s, T_vals[i], deltaT_vals[i])
+    # S = full_S(s, T_vals[i], deltaT_vals[i])
 
     # Create a dataframe with all the synthetic data that also stores the T and delta T values
     df_temp = pd.DataFrame()
@@ -213,12 +241,11 @@ axs[0].set_ylim([0, 2*Tmax])
 
 sctr = axs[1].scatter(df['G'], df['S_scaled'], s=0.4, c=df['DeltaT']/df['T'])
 axs[1].set_xlim([0, Gmax])
-axs[1].set_ylim([0, 2.5])
+axs[1].set_ylim([0, 3.5])
 axs[1].set_xlabel('$G/G_0$')
 axs[1].set_ylabel('$S/G_0k_BT$')
 plt.colorbar(sctr, label='$\Delta T/T$')
 plt.show()
-
 
 
 # Visualize the channel-opening protocol
@@ -227,7 +254,7 @@ tau_result = np.zeros([10, len(G_list)]) # Initialize arrays to hold results
 sumtau = np.zeros(len(G_list)) # To check that all the tau's sum up to G
 
 for i in range(len(G_list)): # Calculate the list of taus at every value of G
-    tau_result[:, i] = get_tau_2(G_list[i], 0.1, [1, 0.8, 0.6, 0.4])
+    tau_result[:, i] = get_tau_2(G_list[i], 0.1, tau_max_list)
     sumtau[i] = sum(tau_result[:, i])
 
 # Plot each channel's transmission as a separate curve
