@@ -105,7 +105,7 @@ if plot_errorbars:
 
 # Now plot histograms of the predicted values at a selection of true values, for both training and test sets
 # Choose a set of indices at which to select out unique delta T values (training data)
-dT_indices_train = [0, 6, 12, 18, 24, 29]
+dT_indices_train = [0, 4, 8, 12, 15, 19]
 
 fig2 = plt.figure(figsize=(13, 7))
 axs = fig2.subplots(2,3)
@@ -115,9 +115,9 @@ for i in range(len(dT_indices_train)):
     prediction_mean = df_train.loc[df_train['DeltaT']==dT, 'DeltaT_pred'].mean()
 
     hg = axs[int(i>2),i%3].hist(df_train.loc[df_train['DeltaT']==dT, 'DeltaT_pred'], bins=50, density=True)
-    axs[int(i>2),i%3].vlines([dT, prediction_mean], 0, 1.1*max(hg[0]), color=['red', 'green'])
-    axs[int(i>2),i%3].set_ylim([0, 1.1*max(hg[0])])
-    axs[int(i>2),i%3].set_title("$\Delta T = "+str(round(dT, 1))+r", \langle \Delta T_{pred}\rangle = $"+str(round(prediction_mean, 1)))
+    axs[int(i>2), i%3].vlines([dT, prediction_mean], 0, 1.1*max(hg[0]), color=['red', 'green'])
+    axs[int(i>2), i%3].set_ylim([0, 1.1*max(hg[0])])
+    axs[int(i>2), i%3].set_title("$\Delta T = "+str(round(dT, 1))+r", \langle \Delta T_{pred}\rangle = $"+str(round(prediction_mean, 1)))
 
 fig2.suptitle("Synthetic data - performance on training set")
 
@@ -133,9 +133,9 @@ for i in range(len(dT_indices_test)):
     prediction_mean = df_test.loc[df_test['DeltaT']==dT, 'DeltaT_pred'].mean()
 
     hg = axs[int(i>2),i%3].hist(df_test.loc[df_test['DeltaT']==dT, 'DeltaT_pred'], bins=50, density=True)
-    axs[int(i>2),i%3].vlines([dT, prediction_mean], 0, 1.1*max(hg[0]), color=['red', 'green'])
-    axs[int(i>2),i%3].set_ylim([0, 1.1*max(hg[0])])
-    axs[int(i>2),i%3].set_title("$\Delta T = "+str(round(dT, 2))+r", \langle \Delta T_{pred}\rangle = $"+str(round(prediction_mean, 1)))
+    axs[int(i>2), i%3].vlines([dT, prediction_mean], 0, 1.1*max(hg[0]), color=['red', 'green'])
+    axs[int(i>2), i%3].set_ylim([0, 1.1*max(hg[0])])
+    axs[int(i>2), i%3].set_title("$\Delta T = "+str(round(dT, 2))+r", \langle \Delta T_{pred}\rangle = $"+str(round(prediction_mean, 1)))
 
 fig3.suptitle("Experimental data - performance on testing set")
 
