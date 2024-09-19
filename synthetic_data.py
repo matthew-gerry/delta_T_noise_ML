@@ -62,28 +62,32 @@ def get_tau(G, x, tau_max):
     return tau
 
 
-def get_tau_2(G, x, tau_max):
+def get_tau_2(G, x, tau_max, tau_noise):
     '''
     ANALOGOUS TO get_tau BUT EACH CHANNEL OPENS TO A DIFFERENT MAXIMUM VALUE.
     THE ARGUMENT tau_max IS NOW A DESCENDING LIST OF MAXIMUM TRANSMISSION VALUES. THE LAST VALUE IN THE LIST WILL BE THE MAXIMUM TRANSMISSION FOR ALL SUBSEQUENT CHANNELS.
+    tau_noise SETS THE WIDTH OF A RANGE OF VALUES WHOSE UPPER BOUND IS THE RELEVANT tau_max FROM WHICH TAU WILL BE CHOSEN.
     '''
 
+    if G < 0:
+        raise ValueError("Negative values of G are unphysical.")
+    if x < 0 or x > 0.5:
+        raise ValueError("x must be between 0 and 0.5.")
+    if sum([int(tau_max[i] < tau_max[i+1]) for i in range(len(tau_max) - 1)]) > 0:
+        raise ValueError("tau_max must be in descending order.")
+    if sum([int(t < 0) for t in tau_max]) > 0 or sum([int(t > 1) for t in tau_max]) > 0:
+        raise ValueError("All values in tau_max must be numbers between 0 and 1.")
+
     # Assume there can be up to four additional channels that can open up to the smallest tau_max value
-    tau_max = tau_max + 4*[tau_max[-1]]
+    tau_max = tau_max + 5*[tau_max[-1]]
+    tau_max = tau_max - tau_noise*np.random.rand(len(tau_max)) # Add some noise to the maximum channel transmissions
+    tau_max = np.sort(tau_max)[::-1] # Re-sort in descending order with noise added - noise should be smaller than the gap between tau_max values fed in
+
+    if G > sum(tau_max):
+        raise ValueError("The function to generate tau values assumes there are no more than five relevant channels with the minimum max transmission. Choose a smaller conductance value.")
     
     # Initialize array for output - add the possibility for two more partially open channels
     tau = np.zeros(len(tau_max) + 2)
-
-    if x < 0 or x > 0.5:
-        raise ValueError("x must be between 0 and 0.5.")
-    if G > sum(tau_max):
-        raise ValueError("The function to generate tau values assumes there are no more than four relevant channels with the minimum max transmission. Choose a smaller conductance value.")
-    if G < 0:
-        raise ValueError("Negative values of G are unphysical.")
-    if sum([int(t < 0) for t in tau_max]) > 0 or sum([int(t > 1) for t in tau_max]) > 0:
-        raise ValueError("All values in tau_max must be numbers between 0 and 1.")
-    if sum([int(tau_max[i] < tau_max[i+1]) for i in range(len(tau_max) - 1)]) > 0:
-        raise ValueError("tau_max must be in descending order.")
 
     # Figure out which channels are fully and partially open
     cumtaumax = np.cumsum(tau_max)
@@ -122,7 +126,7 @@ def generate_data(num, Gmax, x_av, tau_max_list):
 
         # tau_max = np.random.uniform(tau_max_lower, tau_max_upper)
 
-        tau = get_tau_2(G, x, tau_max_list)
+        tau = get_tau_2(G, x, tau_max_list, tau_noise)
         s_data[i] = sum(np.multiply(tau, 1-tau))
 
         i += 1
@@ -171,10 +175,10 @@ Gmax = 4.0 # Maximum conductance (scaled by G_0)
 x_av = 0.1 # Average value of quantity x characterizing channel opening
 num_points_at_temp = 1500 # Number of data points to generate at each T, delta T pair
 
-# Lower and upper bounds on the randomly sampled value of tau_max
-# tau_max_lower = 0.65
-# tau_max_upper = 0.9
+# Parameterize the maximum channel transmissions
 tau_max_list = [1, 0.8, 0.6, 0.4]
+tau_noise = 0.1
+
 
 # Set parameters for the generation of T-deltaT pairs
 Tmin = 10 # Minimum temperature value
@@ -254,7 +258,7 @@ tau_result = np.zeros([10, len(G_list)]) # Initialize arrays to hold results
 sumtau = np.zeros(len(G_list)) # To check that all the tau's sum up to G
 
 for i in range(len(G_list)): # Calculate the list of taus at every value of G
-    tau_result[:, i] = get_tau_2(G_list[i], 0.1, tau_max_list)
+    tau_result[:, i] = get_tau_2(G_list[i], 0.1, tau_max_list, tau_noise)
     sumtau[i] = sum(tau_result[:, i])
 
 # Plot each channel's transmission as a separate curve
