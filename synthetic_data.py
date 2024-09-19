@@ -169,7 +169,7 @@ np.random.seed(1) # Set random seed for reproducibility
 # Set paramaters for generating data
 Gmax = 4.0 # Maximum conductance (scaled by G_0)
 x_av = 0.1 # Average value of quantity x characterizing channel opening
-num_points_at_temp = 500 # Number of data points to generate at each T, delta T pair
+num_points_at_temp = 1500 # Number of data points to generate at each T, delta T pair
 
 # Lower and upper bounds on the randomly sampled value of tau_max
 # tau_max_lower = 0.65
@@ -179,7 +179,7 @@ tau_max_list = [1, 0.8, 0.6, 0.4]
 # Set parameters for the generation of T-deltaT pairs
 Tmin = 10 # Minimum temperature value
 Tmax = 25 # Maximum temperature value
-num_temps = 30 # Number of different temperature values to use
+num_temps = 20 # Number of different temperature values to use
 deltaT_over_T_range = [0.25, 1.75] # Range to which deltaT/T is restricted (bounds of a subinterval of the interval from 0 to 2)
 
 # Based on the parameter values above, generate several random T-DeltaT pairs

@@ -59,12 +59,15 @@ def scheduler(epoch, lr):
 save_predictions = True
 
 # Read delta T shot noise data
+# Use the following lines if we want to train on synthetic data and test on real data
 df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise.csv')
 df_test = pd.read_csv('../GNoiseData_complete.csv')
 df_test = df_test[df_test['DeltaT']>0.5] # For now, drop the experimental data points with deltaT close to 0 - this case is not handled in the synthetic training data
 
-# Train/test split (80 % of data in training set) - commented out when we use split by synthetic/experimental instead
-# df_train = df.sample(frac=0.9, random_state=2)
+# # Use the following lines if we want to train and test on the synthetic data only
+# # Train/test split (80 % of data in training set) - commented out when we use split by synthetic/experimental instead
+# df = pd.read_csv('../synthetic_data_deltaT_shot_noise.csv')
+# df_train = df.sample(frac=0.8, random_state=2)
 # df_test = df.drop(df_train.index)
 
 # Rescale data (G already scaled by G0)
