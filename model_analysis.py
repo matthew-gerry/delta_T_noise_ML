@@ -37,6 +37,15 @@ def half_max_unique_val(unique_val, true_vals, predicted_vals):
     return pred_max, neg_err, pos_err, pred_mean
 
 
+def mean_above_threshold(norm_prob, bins, threshold):
+    ''' CALCULATE THE MEAN VALUE OF A BINNED DATASET, ONLY INCLUDING BINS WITH NORMALIZED PROBABILITY ABOVE A THRESHOLD VALUE '''
+
+    norm_prob[norm_prob<threshold] = 0 # Eliminate bins with normalized probability below the threshold value
+    # Use bin centres as values to plug into mean calculation
+    bin_centres = np.array([0.5*(bins[i] + bins[i+1]) for i in range(len(norm_prob))])
+
+    return sum(np.multiply(norm_prob, bin_centres))/sum(norm_prob)
+
 ### MAIN CALLS ###
 
 # Load training and testing data from csv files that include also the predicted delta T values made when the model is applied
@@ -107,16 +116,27 @@ if plot_errorbars:
 # Choose a set of indices at which to select out unique delta T values (training data)
 dT_indices_train = [0, 4, 8, 12, 15, 19]
 
+# Minimum probably to be included in secondary mean calculation
+threshold = 0.02
+
 fig2 = plt.figure(figsize=(13, 7))
 axs = fig2.subplots(2,3)
 for i in range(len(dT_indices_train)):
     dT = unique_dT_vals_train[dT_indices_train[i]]
 
+    # Organize data into bins and counts, calculate normalized probabilities
+    counts, bins = np.histogram(df_train.loc[df_train['DeltaT']==dT, 'DeltaT_pred'], bins=50, density=False)
+    norm_prob = counts/sum(counts)
+    axs[int(i>2), i%3].stairs(norm_prob, bins, fill=True)
+    
+    # Calculate the mean of predictions at a given true delta T, as well as the mean excluding bins that do not meet a certain threshold
     prediction_mean = df_train.loc[df_train['DeltaT']==dT, 'DeltaT_pred'].mean()
+    prediction_mean_threshold = mean_above_threshold(norm_prob, bins, threshold)
 
-    hg = axs[int(i>2),i%3].hist(df_train.loc[df_train['DeltaT']==dT, 'DeltaT_pred'], bins=50, density=True)
-    axs[int(i>2), i%3].vlines([dT, prediction_mean], 0, 1.1*max(hg[0]), color=['red', 'green'])
-    axs[int(i>2), i%3].set_ylim([0, 1.1*max(hg[0])])
+    axs[int(i>2), i%3].vlines([dT, prediction_mean, prediction_mean_threshold], 0, 1.1*max(norm_prob), color=['red', 'green', 'magenta'])
+    axs[int(i>2), i%3].hlines([threshold], min(bins[0], 0.98*dT), max(bins[-1], 1.02*dT), color='black')
+    axs[int(i>2), i%3].set_ylim([0, 1.1*max(norm_prob)])    
+    axs[int(i>2), i%3].set_xlim([min(bins[0], 0.98*dT), max(bins[-1], 1.02*dT)])    
     axs[int(i>2), i%3].set_title("$\Delta T = "+str(round(dT, 1))+r", \langle \Delta T_{pred}\rangle = $"+str(round(prediction_mean, 1)))
 
 fig2.suptitle("Synthetic data - performance on training set")
@@ -130,11 +150,19 @@ axs = fig3.subplots(2,3)
 for i in range(len(dT_indices_test)):
     dT = unique_dT_vals_test[dT_indices_test[i]]
 
-    prediction_mean = df_test.loc[df_test['DeltaT']==dT, 'DeltaT_pred'].mean()
 
-    hg = axs[int(i>2),i%3].hist(df_test.loc[df_test['DeltaT']==dT, 'DeltaT_pred'], bins=50, density=True)
-    axs[int(i>2), i%3].vlines([dT, prediction_mean], 0, 1.1*max(hg[0]), color=['red', 'green'])
-    axs[int(i>2), i%3].set_ylim([0, 1.1*max(hg[0])])
+    # Organize data into bins and counts, calculate normalized probabilities
+    counts, bins = np.histogram(df_test.loc[df_test['DeltaT']==dT, 'DeltaT_pred'], bins=50, density=False)
+    norm_prob = counts/sum(counts)
+    axs[int(i>2), i%3].stairs(norm_prob, bins, fill=True)
+
+    prediction_mean = df_test.loc[df_test['DeltaT']==dT, 'DeltaT_pred'].mean()
+    prediction_mean_threshold = mean_above_threshold(norm_prob, bins, threshold)
+
+    axs[int(i>2), i%3].vlines([dT, prediction_mean, prediction_mean_threshold], 0, 1.1*max(norm_prob), color=['red', 'green', 'magenta'])
+    axs[int(i>2), i%3].hlines([threshold], min(bins[0], 0.98*dT), max(bins[-1], 1.02*dT), color='black')
+    axs[int(i>2), i%3].set_ylim([0, 1.1*max(norm_prob)])
+    axs[int(i>2), i%3].set_xlim([min(bins[0], 0.98*dT), max(bins[-1], 1.02*dT)])    
     axs[int(i>2), i%3].set_title("$\Delta T = "+str(round(dT, 2))+r", \langle \Delta T_{pred}\rangle = $"+str(round(prediction_mean, 1)))
 
 fig3.suptitle("Experimental data - performance on testing set")
