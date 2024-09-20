@@ -185,7 +185,7 @@ tau_noise = 0.1
 Tmin = 10 # Minimum temperature value
 Tmax = 25 # Maximum temperature value
 num_temps = 20 # Number of different temperature values to use
-deltaT_over_T_range = [0.25, 1.75] # Range to which deltaT/T is restricted (bounds of a subinterval of the interval from 0 to 2)
+deltaT_over_T_range = [0.5, 1.5] # Range to which deltaT/T is restricted (bounds of a subinterval of the interval from 0 to 2)
 
 # Based on the parameter values above, generate several random T-DeltaT pairs
 T_vals = Tmin + (Tmax - Tmin)*np.random.rand(num_temps) # Specified amount of random temperature values between Tmin and Tmax
@@ -209,11 +209,13 @@ for i in range(len(T_vals)):
     # Map the shot noise to the corresponding dimensionful quantity
     S = approx_S(s, T_vals[i], deltaT_vals[i])
     # S = full_S(s, T_vals[i], deltaT_vals[i])
+    S_full = full_S(s, T_vals[i], deltaT_vals[i])
 
     # Create a dataframe with all the synthetic data that also stores the T and delta T values
     df_temp = pd.DataFrame()
     df_temp['G'] = G
     df_temp['S'] = S
+    df_temp['S_full'] = S_full
     df_temp['T'] = T_vals[i]
     df_temp['DeltaT'] = deltaT_vals[i]
 
@@ -226,6 +228,7 @@ df.to_csv("../synthetic_data_deltaT_shot_noise.csv", index=False)
 
 # Dimensionless quantity representing the shot noise but still with temperature dependence (in contrast to the output of the function generate_data)
 df['S_scaled'] = df['S']/(G0 * kB * df['T'])
+df['S_full_scaled'] = df['S_full']/(G0 * kB * df['T'])
 
 # Visualize the synthetic data in a scatter plot
 # Start with T vs Delta T
@@ -234,7 +237,7 @@ df['S_scaled'] = df['S']/(G0 * kB * df['T'])
 minline = deltaT_over_T_range[0]*np.linspace(0, 1.5*Tmax)
 maxline = deltaT_over_T_range[1]*np.linspace(0, 1.5*Tmax)
 
-fig, axs = plt.subplots(1,2)
+fig, axs = plt.subplots(1,3)
 axs[0].scatter(T_vals, deltaT_vals, marker='.', color='k')
 axs[0].plot(np.linspace(0, 1.5*Tmax), minline, color='blue')
 axs[0].plot(np.linspace(0, 1.5*Tmax), maxline, color='blue')
@@ -244,12 +247,19 @@ axs[0].set_ylabel('$\Delta T$')
 axs[0].set_xlim([0, 1.1*Tmax])
 axs[0].set_ylim([0, 2*Tmax])
 
-sctr = axs[1].scatter(df['G'], df['S_scaled'], s=0.4, c=df['DeltaT']/df['T'])
+sctr1 = axs[1].scatter(df['G'], df['S_scaled'], s=0.4, c=df['DeltaT']/df['T'])
 axs[1].set_xlim([0, Gmax])
 axs[1].set_ylim([0, 3.5])
 axs[1].set_xlabel('$G/G_0$')
-axs[1].set_ylabel('$S/G_0k_BT$')
-plt.colorbar(sctr, label='$\Delta T/T$')
+axs[1].set_ylabel('$S/G_0k_BT$ (approx)')
+plt.colorbar(sctr1, label='$\Delta T/T$')
+
+sctr2 = axs[2].scatter(df['G'], df['S_full_scaled'], s=0.4, c=df['DeltaT']/df['T'])
+axs[2].set_xlim([0, Gmax])
+# axs[2].set_ylim([0, 3.5])
+axs[2].set_xlabel('$G/G_0$')
+axs[2].set_ylabel('$S/G_0k_BT$ (full)')
+plt.colorbar(sctr2, label='$\Delta T/T$')
 plt.show()
 
 
