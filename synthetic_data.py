@@ -136,7 +136,7 @@ def generate_data(num, Gmax, x_av, tau_max_list):
 
 def approx_S(s, T, deltaT):
     ''' FROM THE NON-DIMENSIONALIZED s VALUE, RETURN THE VALUE OF THE SHOT NOISE WITH UNITS OF CHARGE^2/TIME, BASED ON THE LEADING ORDER APPROXIMATION IN T '''    
-    return s * (np.pi**2/9 - 2/3) * G0 * kB * (deltaT**2) / T
+    return s * ((np.pi**2)/9 - 2/3) * G0 * kB * (deltaT**2) / T
 
 
 def fermi(E, mu, T):
@@ -160,7 +160,8 @@ def full_S(s, T, deltaT):
     fhot = fermi(E, 0, Thot); fcold = fermi(E, 0, Tcold)
 
     # Carry out the integration, multiply factor of kB due to scaling of energy values used in calculating the fermi functions
-    integrand = fhot * (1 - fcold) + fcold * (1 - fhot)
+    # integrand = fhot * (1 - fcold) + fcold * (1 - fhot)
+    integrand = (fhot - fcold) / np.tanh(deltaT*E/(2*kB*Thot*Tcold))
     S = s * 2 * G0 * kB * dE * sum(integrand) # Multiply by the factor associated with the channel transmissions as well
     return S
 
@@ -252,21 +253,21 @@ plt.colorbar(sctr, label='$\Delta T/T$')
 plt.show()
 
 
-# Visualize the channel-opening protocol
-G_list = np.arange(0, 4, 0.1) # List of G values for horizontal axis
-tau_result = np.zeros([10, len(G_list)]) # Initialize arrays to hold results
-sumtau = np.zeros(len(G_list)) # To check that all the tau's sum up to G
+# # Visualize the channel-opening protocol
+# G_list = np.arange(0, 4, 0.1) # List of G values for horizontal axis
+# tau_result = np.zeros([len(tau_max_list) + 7, len(G_list)]) # Initialize arrays to hold results
+# sumtau = np.zeros(len(G_list)) # To check that all the tau's sum up to G
 
-for i in range(len(G_list)): # Calculate the list of taus at every value of G
-    tau_result[:, i] = get_tau_2(G_list[i], 0.1, tau_max_list, tau_noise)
-    sumtau[i] = sum(tau_result[:, i])
+# for i in range(len(G_list)): # Calculate the list of taus at every value of G
+#     tau_result[:, i] = get_tau_2(G_list[i], 0.1, tau_max_list, tau_noise)
+#     sumtau[i] = sum(tau_result[:, i])
 
-# Plot each channel's transmission as a separate curve
-fig, ax = plt.subplots()
-for i in range(len(tau_result[:, 0])):
-    ax.plot(G_list, tau_result[i, :])
-ax.set_xlabel("$G$")
-ax.set_ylabel(r"$\tau_n$")
-ax.set_ylim([0, 1.05])
-ax.set_xlim([0, 3.9])
-plt.show()
+# # Plot each channel's transmission as a separate curve
+# fig, ax = plt.subplots()
+# for i in range(len(tau_result[:, 0])):
+#     ax.plot(G_list, tau_result[i, :])
+# ax.set_xlabel("$G$")
+# ax.set_ylabel(r"$\tau_n$")
+# ax.set_ylim([0, 1.05])
+# ax.set_xlim([0, 3.9])
+# plt.show()
