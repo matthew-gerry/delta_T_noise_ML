@@ -15,6 +15,7 @@ from matplotlib import pyplot as plt
 # Define constants
 
 G0 = 7.748092*10**(-5) # C^2/Js, conductance quantum
+# G0 = 1
 kB = 1.380649*10**(-23) # J/K, Boltzmann constant
 
 ### FUNCTIONS ###
@@ -112,13 +113,14 @@ def get_tau_2(G, x, tau_max, tau_noise):
 def generate_data(num, Gmax, x_av, tau_max_list):
     ''' GENERATE A SET OF DIMENSIONLESS s VALUES BASED ON RANDOMLY SAMPLED G, x, AND tau_max '''
 
-    s_data = np.zeros(num) # Initialize array to hold the generated data
+    # Initialize arrays to hold the generated data
     G_data = np.zeros(num)
+    s_data = np.zeros(num)
+    tausquared_data = np.zeros(num) # We'll need to save the sum of tau values squared for calculating the full integral for S
 
     i = 0
     while i < num:
-        G = np.random.uniform(0, Gmax) # Sample a uniform distribution to get G
-        G_data[i] = G # Record G value
+        G_input = np.random.uniform(0, Gmax) # Sample a uniform distribution to get G
 
         x = 1
         while x > 0.5: # Sample an exponential distribution to get x, throw out if greater than 0.5
@@ -126,12 +128,15 @@ def generate_data(num, Gmax, x_av, tau_max_list):
 
         # tau_max = np.random.uniform(tau_max_lower, tau_max_upper)
 
-        tau = get_tau_2(G, x, tau_max_list, tau_noise)
-        s_data[i] = sum(np.multiply(tau, 1-tau))
+        tau = get_tau_2(G_input, x, tau_max_list, tau_noise)
+
+        G_data[i] = sum(tau) # Record true G value, which can differ from the input G value due to the noise that is added when we calculate taus
+        s_data[i] = sum(np.multiply(tau, 1 - tau))
+        tausquared_data[i] = sum(np.power(tau, 2))
 
         i += 1
     
-    return G_data, s_data
+    return G_data, s_data, tausquared_data
 
 
 def approx_S(s, T, deltaT):
@@ -144,7 +149,7 @@ def fermi(E, mu, T):
     return 1/(1 + np.exp((E - mu)/T))
 
 
-def full_S(s, T, deltaT):
+def full_S(s, tausquared, G, T, deltaT):
     ''' FULL VALUE OF S FROM NON-DIMENSIONALIZED s BASED ON THE FULL INTEGRAL EXPRESSION, ASSUMING NO CHEMICAL POTENTIAL DIFFERENCE BETWEEN THE LEADS '''
     
     # Parameters for the integration - cover the whole region where the difference between fermi functions is considerably nonzero
@@ -158,12 +163,26 @@ def full_S(s, T, deltaT):
 
     # Calculate the fermi functions
     fhot = fermi(E, 0, Thot); fcold = fermi(E, 0, Tcold)
+    # feq = fermi(E, 0, 0) # Fermi function for the case that deltaT = 0
 
     # Carry out the integration, multiply factor of kB due to scaling of energy values used in calculating the fermi functions
-    # integrand = fhot * (1 - fcold) + fcold * (1 - fhot)
-    integrand = (fhot - fcold) / np.tanh(deltaT*E/(2*kB*Thot*Tcold))
-    S = s * 2 * G0 * kB * dE * sum(integrand) # Multiply by the factor associated with the channel transmissions as well
-    return S
+    # First we numerically integrate for the total noise, then subtract off the equilibrium contribution
+    # integrand1 = np.multiply(fhot, 1 - fhot) + np.multiply(fcold, 1 - fcold)
+    # integrand2 = np.multiply(fhot, 1 - fcold) + np.multiply(fcold, 1 - fhot)
+
+    # integrand_eq = 2 * np.multiply(feq, 1 - feq)
+
+    integrand2 = (fhot - fcold) / np.tanh(deltaT*E/(2*kB*Thot*Tcold))
+    # S_total1 = tausquared * 2 * G0 * kB * dE * sum(integrand1)
+    S_total2 = s * 2 * G0 * kB * dE * sum(integrand2)
+    
+    # S_eq1 = tausquared * 2 * G0 * kB * dE * sum(integrand_eq) 
+    # S_eq2 = s * 2 * G0 * kB * dE * sum(integrand_eq)
+    S_eq = 4 * G0 * tausquared * kB * T - 4 * G0 * G * kB * T
+
+    # S_eq = G * 2 * G0 * kB * dE
+
+    return  S_total2 - S_eq
 
 
 ### MAIN CALLS ###
@@ -172,7 +191,7 @@ def full_S(s, T, deltaT):
 np.random.seed(1) # Set random seed for reproducibility
 
 # Set paramaters for generating data
-Gmax = 4.0 # Maximum conductance (scaled by G_0)
+Gmax = 1.0 # Maximum conductance (scaled by G_0)
 x_av = 0.1 # Average value of quantity x characterizing channel opening
 num_points_at_temp = 1500 # Number of data points to generate at each T, delta T pair
 
@@ -204,12 +223,12 @@ for i in range(len(T_vals)):
     deltaT = deltaT_vals[i]
 
     # Generate a bunch of non-dimensionalized G and s data
-    G, s = generate_data(num_points_at_temp, Gmax, x_av, tau_max_list)
+    G, s, tausquared = generate_data(num_points_at_temp, Gmax, x_av, tau_max_list)
 
     # Map the shot noise to the corresponding dimensionful quantity
     S = approx_S(s, T_vals[i], deltaT_vals[i])
     # S = full_S(s, T_vals[i], deltaT_vals[i])
-    S_full = full_S(s, T_vals[i], deltaT_vals[i])
+    S_full = full_S(s, tausquared, G, T_vals[i], deltaT_vals[i])
 
     # Create a dataframe with all the synthetic data that also stores the T and delta T values
     df_temp = pd.DataFrame()
@@ -229,6 +248,8 @@ df.to_csv("../synthetic_data_deltaT_shot_noise.csv", index=False)
 # Dimensionless quantity representing the shot noise but still with temperature dependence (in contrast to the output of the function generate_data)
 df['S_scaled'] = df['S']/(G0 * kB * df['T'])
 df['S_full_scaled'] = df['S_full']/(G0 * kB * df['T'])
+
+# df = df[df['T']<8.0]
 
 # Visualize the synthetic data in a scatter plot
 # Start with T vs Delta T
