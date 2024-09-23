@@ -78,16 +78,16 @@ df_test['DeltaT'] = df_test['DeltaT']/df_test['T']
 df_test['S'] = df_test['S']/(g0 * kB * df_test['T'])
 
 # Set up numpy arrays for use with Keras network
-X_train = df_train.drop(['DeltaT','T'], axis=1).to_numpy()
+X_train = df_train.drop(['DeltaT','S_full', 'T'], axis=1).to_numpy()
 y_train = df_train['DeltaT'].to_numpy()
 T_train = df_train['T'].to_numpy() # Save average temperature values in a separate array
 
-X_test = df_test.drop(['DeltaT','T'], axis=1).to_numpy()
+X_test = df_test.drop(['DeltaT', 'T'], axis=1).to_numpy()
 y_test= df_test['DeltaT'].to_numpy()
 T_test = df_test['T'].to_numpy() # Save average temperature values in a separate array
 
 # Build the model
-model = build_model_fNN([6])
+model = build_model_fNN([6], input_dim=3)
 print(model.summary())
 
 # loss function

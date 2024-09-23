@@ -81,7 +81,7 @@ def get_tau_2(G, x, tau_max, tau_noise):
     # Assume there can be up to four additional channels that can open up to the smallest tau_max value
     tau_max = tau_max + 5*[tau_max[-1]]
     tau_max = tau_max - tau_noise*np.random.rand(len(tau_max)) # Add some noise to the maximum channel transmissions
-    tau_max = np.sort(tau_max)[::-1] # Re-sort in descending order with noise added - noise should be smaller than the gap between tau_max values fed in
+    # tau_max = np.sort(tau_max)[::-1] # Re-sort in descending order with noise added - noise should be smaller than the gap between tau_max values fed in
 
     if G > sum(tau_max):
         raise ValueError("The function to generate tau values assumes there are no more than five relevant channels with the minimum max transmission. Choose a smaller conductance value.")
@@ -182,10 +182,10 @@ tau_noise = 0.1
 
 
 # Set parameters for the generation of T-deltaT pairs
-Tmin = 10 # Minimum temperature value
-Tmax = 25 # Maximum temperature value
+Tmin = 5 # Minimum temperature value
+Tmax = 30 # Maximum temperature value
 num_temps = 20 # Number of different temperature values to use
-deltaT_over_T_range = [0.5, 1.5] # Range to which deltaT/T is restricted (bounds of a subinterval of the interval from 0 to 2)
+deltaT_over_T_range = [0.1, 1.9] # Range to which deltaT/T is restricted (bounds of a subinterval of the interval from 0 to 2)
 
 # Based on the parameter values above, generate several random T-DeltaT pairs
 T_vals = Tmin + (Tmax - Tmin)*np.random.rand(num_temps) # Specified amount of random temperature values between Tmin and Tmax
@@ -263,21 +263,21 @@ plt.colorbar(sctr2, label='$\Delta T/T$')
 plt.show()
 
 
-# # Visualize the channel-opening protocol
-# G_list = np.arange(0, 4, 0.1) # List of G values for horizontal axis
-# tau_result = np.zeros([len(tau_max_list) + 7, len(G_list)]) # Initialize arrays to hold results
-# sumtau = np.zeros(len(G_list)) # To check that all the tau's sum up to G
+# Visualize the channel-opening protocol
+G_list = np.arange(0, 4, 0.1) # List of G values for horizontal axis
+tau_result = np.zeros([len(tau_max_list) + 7, len(G_list)]) # Initialize arrays to hold results
+sumtau = np.zeros(len(G_list)) # To check that all the tau's sum up to G
 
-# for i in range(len(G_list)): # Calculate the list of taus at every value of G
-#     tau_result[:, i] = get_tau_2(G_list[i], 0.1, tau_max_list, tau_noise)
-#     sumtau[i] = sum(tau_result[:, i])
+for i in range(len(G_list)): # Calculate the list of taus at every value of G
+    tau_result[:, i] = get_tau_2(G_list[i], 0.1, tau_max_list, tau_noise)
+    sumtau[i] = sum(tau_result[:, i])
 
-# # Plot each channel's transmission as a separate curve
-# fig, ax = plt.subplots()
-# for i in range(len(tau_result[:, 0])):
-#     ax.plot(G_list, tau_result[i, :])
-# ax.set_xlabel("$G$")
-# ax.set_ylabel(r"$\tau_n$")
-# ax.set_ylim([0, 1.05])
-# ax.set_xlim([0, 3.9])
-# plt.show()
+# Plot each channel's transmission as a separate curve
+fig, ax = plt.subplots()
+for i in range(len(tau_result[:, 0])):
+    ax.plot(G_list, tau_result[i, :])
+ax.set_xlabel("$G$")
+ax.set_ylabel(r"$\tau_n$")
+ax.set_ylim([0, 1.05])
+ax.set_xlim([0, 3.9])
+plt.show()
