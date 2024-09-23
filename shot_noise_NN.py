@@ -87,7 +87,7 @@ y_test= df_test['DeltaT'].to_numpy()
 T_test = df_test['T'].to_numpy() # Save average temperature values in a separate array
 
 # Build the model
-model = build_model_fNN([6], input_dim=3)
+model = build_model_fNN([6], input_dim=2)
 print(model.summary())
 
 # loss function
