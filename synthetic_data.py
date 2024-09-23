@@ -123,7 +123,7 @@ def generate_data(num, Gmax, x_av, tau_max_list):
         G_input = np.random.uniform(0, Gmax) # Sample a uniform distribution to get G
 
         x = 1
-        while x > 0.5: # Sample an exponential distribution to get x, throw out if greater than 0.5
+        while x > 0.4: # Sample an exponential distribution to get x, throw out if greater than 0.5
             x = -x_av*np.log(np.random.uniform())
 
         # tau_max = np.random.uniform(tau_max_lower, tau_max_upper)
@@ -191,7 +191,7 @@ def full_S(s, tausquared, G, T, deltaT):
 np.random.seed(1) # Set random seed for reproducibility
 
 # Set paramaters for generating data
-Gmax = 1.0 # Maximum conductance (scaled by G_0)
+Gmax = 4.0 # Maximum conductance (scaled by G_0)
 x_av = 0.1 # Average value of quantity x characterizing channel opening
 num_points_at_temp = 1500 # Number of data points to generate at each T, delta T pair
 
