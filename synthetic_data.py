@@ -12,11 +12,15 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-# Define constants
 
-G0 = 7.748092*10**(-5) # C^2/Js, conductance quantum
-# G0 = 1
-kB = 1.380649*10**(-23) # J/K, Boltzmann constant
+### CONSTANTS ###
+
+kB = 1.380649e-23 # J/K, Boltzmann constant
+q = 1.6e-19 # C, electron charge
+h = 6.626e-34 # Js, Planck's constant
+
+G0 = 2*q**2/h # C^2/Js, conductance quantum
+
 
 ### FUNCTIONS ###
 
@@ -110,7 +114,7 @@ def get_tau_2(G, x, tau_max, tau_noise):
     return tau
 
 
-def generate_data(num, Gmax, x_av, tau_max_list):
+def generate_data(num, Gmax, x_av, tau_max_list, tau_noise):
     ''' GENERATE A SET OF DIMENSIONLESS s VALUES BASED ON RANDOMLY SAMPLED G, x, AND tau_max '''
 
     # Initialize arrays to hold the generated data
@@ -145,44 +149,36 @@ def approx_S(s, T, deltaT):
 
 
 def fermi(E, mu, T):
-    ''' FERMI-DIRAC DISTRIBUTION, ENERGY GIVEN IN UNITS OF TEMPERATURE (ENERGY DIVIDED BY kB) '''
-    return 1/(1 + np.exp((E - mu)/T))
+    ''' FERMI-DIRAC DISTRIBUTION, CONVERT TEMPERATURE TO APPROPRIATE ENERGY UNITS WHEN IMPLEMENTED '''
+    return (1 + np.exp((E - mu)/T))**(-1)
 
 
 def full_S(s, tausquared, G, T, deltaT):
     ''' FULL VALUE OF S FROM NON-DIMENSIONALIZED s BASED ON THE FULL INTEGRAL EXPRESSION, ASSUMING NO CHEMICAL POTENTIAL DIFFERENCE BETWEEN THE LEADS '''
     
     # Parameters for the integration - cover the whole region where the difference between fermi functions is considerably nonzero
-    # Energy parameters here are actually E/kB (therefore in units of temperature)
+    # Energy parameters here are in eV
     dE = 0.01
     bounds = [-350, 350]
-    E = np.arange(bounds[0], bounds[1], dE) # Energy axis over which to integrate
+    E_axis = np.arange(bounds[0], bounds[1], dE) # Energy axis over which to integrate (in eV)
 
     # Get the temperatures of the hot and cold leads
     Thot = T + 0.5*deltaT; Tcold = T - 0.5*deltaT
 
     # Calculate the fermi functions
-    fhot = fermi(E, 0, Thot); fcold = fermi(E, 0, Tcold)
-    # feq = fermi(E, 0, 0) # Fermi function for the case that deltaT = 0
+    fhot = fermi(E_axis, 0, Thot); fcold = fermi(E_axis, 0, Tcold)
 
     # Carry out the integration, multiply factor of kB due to scaling of energy values used in calculating the fermi functions
-    # First we numerically integrate for the total noise, then subtract off the equilibrium contribution
-    # integrand1 = np.multiply(fhot, 1 - fhot) + np.multiply(fcold, 1 - fcold)
-    # integrand2 = np.multiply(fhot, 1 - fcold) + np.multiply(fcold, 1 - fhot)
+    # Integrands are functions of the Fermi-Dirac distributions
+    integrand1 = np.multiply(fhot, 1 - fhot) + np.multiply(fcold, 1 - fcold)
+    integrand2 = np.multiply(fhot, 1 - fcold) + np.multiply(fcold, 1 - fhot)
 
-    # integrand_eq = 2 * np.multiply(feq, 1 - feq)
+    # Integrate to get the shot noise, subtract off the thermal noise which is simply proportional to T
+    S1 = 2 * G0 * kB * dE * sum(integrand1) * tausquared
+    S2 = 2 * G0 * kB * dE * sum(integrand2) * s
+    Sth = 4 * G0 * kB * T * G
 
-    integrand2 = (fhot - fcold) / np.tanh(deltaT*E/(2*kB*Thot*Tcold))
-    # S_total1 = tausquared * 2 * G0 * kB * dE * sum(integrand1)
-    S_total2 = s * 2 * G0 * kB * dE * sum(integrand2)
-    
-    # S_eq1 = tausquared * 2 * G0 * kB * dE * sum(integrand_eq) 
-    # S_eq2 = s * 2 * G0 * kB * dE * sum(integrand_eq)
-    S_eq = 4 * G0 * tausquared * kB * T - 4 * G0 * G * kB * T
-
-    # S_eq = G * 2 * G0 * kB * dE
-
-    return  S_total2 - S_eq
+    return  S1 + S2 - Sth
 
 
 ### MAIN CALLS ###
@@ -223,11 +219,10 @@ for i in range(len(T_vals)):
     deltaT = deltaT_vals[i]
 
     # Generate a bunch of non-dimensionalized G and s data
-    G, s, tausquared = generate_data(num_points_at_temp, Gmax, x_av, tau_max_list)
+    G, s, tausquared = generate_data(num_points_at_temp, Gmax, x_av, tau_max_list, tau_noise)
 
     # Map the shot noise to the corresponding dimensionful quantity
     S = approx_S(s, T_vals[i], deltaT_vals[i])
-    # S = full_S(s, T_vals[i], deltaT_vals[i])
     S_full = full_S(s, tausquared, G, T_vals[i], deltaT_vals[i])
 
     # Create a dataframe with all the synthetic data that also stores the T and delta T values
@@ -270,14 +265,14 @@ axs[0].set_ylim([0, 2*Tmax])
 
 sctr1 = axs[1].scatter(df['G'], df['S_scaled'], s=0.4, c=df['DeltaT']/df['T'])
 axs[1].set_xlim([0, Gmax])
-axs[1].set_ylim([0, 3.5])
+axs[1].set_ylim([0, 3.0])
 axs[1].set_xlabel('$G/G_0$')
 axs[1].set_ylabel('$S/G_0k_BT$ (approx)')
 plt.colorbar(sctr1, label='$\Delta T/T$')
 
 sctr2 = axs[2].scatter(df['G'], df['S_full_scaled'], s=0.4, c=df['DeltaT']/df['T'])
 axs[2].set_xlim([0, Gmax])
-# axs[2].set_ylim([0, 3.5])
+axs[2].set_ylim([0, 3.0])
 axs[2].set_xlabel('$G/G_0$')
 axs[2].set_ylabel('$S/G_0k_BT$ (full)')
 plt.colorbar(sctr2, label='$\Delta T/T$')
