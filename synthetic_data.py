@@ -280,19 +280,23 @@ plt.show()
 
 
 # Visualize the channel-opening protocol
-G_list = np.arange(0, 4, 0.1) # List of G values for horizontal axis
+G_list = np.arange(0, 4, 0.03) # List of G values for horizontal axis
 tau_result = np.zeros([len(tau_max_list) + 7, len(G_list)]) # Initialize arrays to hold results
 sumtau = np.zeros(len(G_list)) # To check that all the tau's sum up to G
 
 for i in range(len(G_list)): # Calculate the list of taus at every value of G
-    tau_result[:, i] = get_tau_2(G_list[i], 0.1, tau_max_list, tau_noise)
+    tau_result[:, i] = get_tau_2(G_list[i], 0.1, tau_max_list, 0)
     sumtau[i] = sum(tau_result[:, i])
 
 # Plot each channel's transmission as a separate curve
 fig, ax = plt.subplots()
 for i in range(len(tau_result[:, 0])):
     ax.plot(G_list, tau_result[i, :])
-ax.set_xlabel("$G$")
+
+    tau_lower = max(tau_result[i, :]) - 0.1
+
+    ax.fill_between(G_list, tau_lower, tau_result[i, :], alpha=0.2, where=tau_result[i,:] > tau_lower)
+ax.set_xlabel("$G$ (input)")
 ax.set_ylabel(r"$\tau_n$")
 ax.set_ylim([0, 1.05])
 ax.set_xlim([0, 3.9])
