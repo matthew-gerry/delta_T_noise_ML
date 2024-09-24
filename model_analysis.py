@@ -139,6 +139,12 @@ for i in range(len(dT_indices_train)):
     axs[int(i>2), i%3].set_xlim([min(bins[0], 0.98*dT), max(bins[-1], 1.02*dT)])    
     axs[int(i>2), i%3].set_title("$\Delta T = "+str(round(dT, 1))+r", \langle \Delta T_{pred}\rangle = $"+str(round(prediction_mean, 1)))
 
+    if i>2:
+        axs[int(i>2), i%3].set_xlabel("Predicted $\Delta T$")
+    if i%3==0:
+        axs[int(i>2), i%3].set_ylabel("Normalized Probability")
+
+
 fig2.suptitle("Synthetic data - performance on training set")
 
 
@@ -164,6 +170,11 @@ for i in range(len(dT_indices_test)):
     axs[int(i>2), i%3].set_ylim([0, 1.1*max(norm_prob)])
     axs[int(i>2), i%3].set_xlim([min(bins[0], 0.98*dT), max(bins[-1], 1.02*dT)])    
     axs[int(i>2), i%3].set_title("$\Delta T = "+str(round(dT, 2))+r", \langle \Delta T_{pred}\rangle = $"+str(round(prediction_mean, 1)))
+
+    if i>2:
+        axs[int(i>2), i%3].set_xlabel("Predicted $\Delta T$")
+    if i%3==0:
+        axs[int(i>2), i%3].set_ylabel("Normalized Probability")
 
 fig3.suptitle("Experimental data - performance on testing set")
 

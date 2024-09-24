@@ -24,50 +24,7 @@ G0 = 2*q**2/h # C^2/Js, conductance quantum
 
 ### FUNCTIONS ###
 
-def get_tau(G, x, tau_max):
-    ''' TRANSMISSION OF EACH CHANNEL AS A FUNCTION OF THE CONDUCTANCE BASED ON A CHOSEN x CHARACTERIZING SEQUENTIAL OPENING AND tau_max RERPESENTING THE EXTENT TO WHICH CHANNELS OPEN (EXCEPT CHANNEL 1 WHICH OPENS ALL THE WAY). '''
-
-    if x < 0 or x > 0.5:
-        raise ValueError("x must be between 0 and 0.5.")
-    if tau_max < 0.5 or tau_max > 1:
-        raise ValueError("tau_max must be between 0 and 1.")
-    if G > 1 + 28 * tau_max:
-        raise ValueError("This function assumes there are no more than 20 transmission channels. Accordingly, choose a smaller value of g")
-
-    # Assume there are no more than 20 transmission channels
-    tau = np.zeros(30) # Initialize array for output
-    # Channels that are not open will retain the value of zero for the transmission
-    
-    if G <= 1:
-        ''' IN THE LOW G CASE, ASSUME TWO CHANNELS ARE OPEN, AND THAT tau_max DOES NOT BOUND THE TRANSMISSION OF THE FIRST CHANNEL '''
-
-        # Linear functions for each channel transmission, they should add up to G
-        tau[0] = G * (1 - x)
-        tau[1] = G * x
-    
-    if G > 1 and G <= 1 + tau_max:
-        ''' IN THIS INTERMEDIATE REGIME, THERE IS A SPECIAL PROCEDURE FOR OPENING CHANNELS TO BRIDGE TO CHANNEL 1 BEING FULLY OPEN '''
-
-        tau[0] = (1 - x) + (G - 1) * x/tau_max
-        tau[1] = x + (G - 1) * (1 - x - x/tau_max)
-        tau[2] = (G - 1)*x
-    
-    if G > 1 + tau_max:
-        ''' FROM HERE ON, THERE ARE ALWAYS THREE PARTIALLY OPEN CHANNELS WHICH OPEN IN A CONSISTENT MANNER UP TO tau_max '''
-        n = int(np.floor((G - 1)/tau_max)) # Number of maximally open channels
-
-        tau[0] = 1 # The first channel is fully open
-        for i in range(1, n):
-            tau[i] = tau_max # Channels above the first that are maximally open, if any
-
-        tau[n] = (1 - x) * tau_max + (G - 1 - n*tau_max) * x
-        tau[n + 1] = tau_max * x + (1 - 2*x)*(G - 1 - n*tau_max)
-        tau[n + 2] = (G - 1 - n*tau_max) * x
-
-    return tau
-
-
-def get_tau_2(G, x, tau_max, tau_noise):
+def get_tau(G, x, tau_max, tau_noise):
     '''
     ANALOGOUS TO get_tau BUT EACH CHANNEL OPENS TO A DIFFERENT MAXIMUM VALUE.
     THE ARGUMENT tau_max IS NOW A DESCENDING LIST OF MAXIMUM TRANSMISSION VALUES. THE LAST VALUE IN THE LIST WILL BE THE MAXIMUM TRANSMISSION FOR ALL SUBSEQUENT CHANNELS.
@@ -132,7 +89,7 @@ def generate_data(num, Gmax, x_av, tau_max_list, tau_noise):
 
         # tau_max = np.random.uniform(tau_max_lower, tau_max_upper)
 
-        tau = get_tau_2(G_input, x, tau_max_list, tau_noise)
+        tau = get_tau(G_input, x, tau_max_list, tau_noise)
 
         G_data[i] = sum(tau) # Record true G value, which can differ from the input G value due to the noise that is added when we calculate taus
         s_data[i] = sum(np.multiply(tau, 1 - tau))
@@ -195,12 +152,11 @@ num_points_at_temp = 1500 # Number of data points to generate at each T, delta T
 tau_max_list = [1, 0.8, 0.6, 0.4]
 tau_noise = 0.1
 
-
 # Set parameters for the generation of T-deltaT pairs
-Tmin = 5 # Minimum temperature value
-Tmax = 30 # Maximum temperature value
+Tmin = 10 # Minimum temperature value
+Tmax = 25 # Maximum temperature value
 num_temps = 20 # Number of different temperature values to use
-deltaT_over_T_range = [0.1, 1.9] # Range to which deltaT/T is restricted (bounds of a subinterval of the interval from 0 to 2)
+deltaT_over_T_range = [0.2, 1.8] # Range to which deltaT/T is restricted (bounds of a subinterval of the interval from 0 to 2)
 
 # Based on the parameter values above, generate several random T-DeltaT pairs
 T_vals = Tmin + (Tmax - Tmin)*np.random.rand(num_temps) # Specified amount of random temperature values between Tmin and Tmax
@@ -253,28 +209,29 @@ df['S_full_scaled'] = df['S_full']/(G0 * kB * df['T'])
 minline = deltaT_over_T_range[0]*np.linspace(0, 1.5*Tmax)
 maxline = deltaT_over_T_range[1]*np.linspace(0, 1.5*Tmax)
 
-fig, axs = plt.subplots(1,3)
-axs[0].scatter(T_vals, deltaT_vals, marker='.', color='k')
-axs[0].plot(np.linspace(0, 1.5*Tmax), minline, color='blue')
-axs[0].plot(np.linspace(0, 1.5*Tmax), maxline, color='blue')
-axs[0].vlines([Tmin, Tmax], 0, 2*Tmax, colors='red')
-axs[0].set_xlabel('$T$')
-axs[0].set_ylabel('$\Delta T$')
-axs[0].set_xlim([0, 1.1*Tmax])
-axs[0].set_ylim([0, 2*Tmax])
+fig1, ax1 = plt.subplots()
+ax1.scatter(T_vals, deltaT_vals, marker='.', color='k')
+ax1.plot(np.linspace(0, 1.5*Tmax), minline, color='blue')
+ax1.plot(np.linspace(0, 1.5*Tmax), maxline, color='blue')
+ax1.vlines([Tmin, Tmax], 0, 2*Tmax, colors='red')
+ax1.set_xlabel('$T$')
+ax1.set_ylabel('$\Delta T$')
+ax1.set_xlim([0, 1.1*Tmax])
+ax1.set_ylim([0, 2*Tmax])
 
-sctr1 = axs[1].scatter(df['G'], df['S_scaled'], s=0.4, c=df['DeltaT']/df['T'])
-axs[1].set_xlim([0, Gmax])
-axs[1].set_ylim([0, 3.0])
-axs[1].set_xlabel('$G/G_0$')
-axs[1].set_ylabel('$S/G_0k_BT$ (approx)')
+fig2, axs = plt.subplots(1,2)
+sctr1 = axs[0].scatter(df['G'], df['S_scaled'], s=0.4, c=df['DeltaT']/df['T'])
+axs[0].set_xlim([0, Gmax])
+axs[0].set_ylim([0, 2.5])
+axs[0].set_xlabel('$G/G_0$')
+axs[0].set_ylabel('$S/G_0k_BT$ (approx)')
 plt.colorbar(sctr1, label='$\Delta T/T$')
 
-sctr2 = axs[2].scatter(df['G'], df['S_full_scaled'], s=0.4, c=df['DeltaT']/df['T'])
-axs[2].set_xlim([0, Gmax])
-axs[2].set_ylim([0, 3.0])
-axs[2].set_xlabel('$G/G_0$')
-axs[2].set_ylabel('$S/G_0k_BT$ (full)')
+sctr2 = axs[1].scatter(df['G'], df['S_full_scaled'], s=0.4, c=df['DeltaT']/df['T'])
+axs[1].set_xlim([0, Gmax])
+axs[1].set_ylim([0, 2.5])
+axs[1].set_xlabel('$G/G_0$')
+axs[1].set_ylabel('$S/G_0k_BT$ (full)')
 plt.colorbar(sctr2, label='$\Delta T/T$')
 plt.show()
 
@@ -285,7 +242,8 @@ tau_result = np.zeros([len(tau_max_list) + 7, len(G_list)]) # Initialize arrays 
 sumtau = np.zeros(len(G_list)) # To check that all the tau's sum up to G
 
 for i in range(len(G_list)): # Calculate the list of taus at every value of G
-    tau_result[:, i] = get_tau_2(G_list[i], 0.1, tau_max_list, 0)
+    # Calculate the transmissions here without noise--we will show the noise by shading a whole region on the plot
+    tau_result[:, i] = get_tau(G_list[i], 0.1, tau_max_list, 0)
     sumtau[i] = sum(tau_result[:, i])
 
 # Plot each channel's transmission as a separate curve
@@ -293,7 +251,7 @@ fig, ax = plt.subplots()
 for i in range(len(tau_result[:, 0])):
     ax.plot(G_list, tau_result[i, :])
 
-    tau_lower = max(tau_result[i, :]) - 0.1
+    tau_lower = max(tau_result[i, :]) - tau_noise # Lower bound of the max transmission for each channel
 
     ax.fill_between(G_list, tau_lower, tau_result[i, :], alpha=0.2, where=tau_result[i,:] > tau_lower)
 ax.set_xlabel("$G$ (input)")
