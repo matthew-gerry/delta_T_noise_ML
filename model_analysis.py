@@ -14,7 +14,7 @@ import pandas as pd
 
 ### FUNCTIONS ###
 
-def half_max_unique_val(unique_val, true_vals, predicted_vals):
+def stats_unique_val(unique_val, true_vals, predicted_vals):
     ''' CALCULATE THE FWHM OF PREDICTED VALUES CORRESPONDING TO A GIVEN UNIQUE TRUE VALUE IN THE DATA. OUTPUT THE VALUES CORRESPONDING TO BOTH HALF MAXES AS WELL AS THE PEAK '''
 
     indices = np.where(true_vals==unique_val) # Indices assocaited with instances of a particular true value
@@ -24,6 +24,7 @@ def half_max_unique_val(unique_val, true_vals, predicted_vals):
     max = counts[max_ind] # Maximum number of counts in a bin
     pred_max = (bins[max_ind] + bins[max_ind+1])/2 # Central value of the bin representing the peak
     pred_mean = np.mean(predictions_at_val)
+    pred_stddev = np.std(predictions_at_val)
 
     half_max = max/2 # Number of counts associated with half max
     # Two lists of positive values with minima at the lower and upper half-max Delta T values, respectively
@@ -34,7 +35,7 @@ def half_max_unique_val(unique_val, true_vals, predicted_vals):
     neg_err = pred_max - (bins[np.argmin(lower_half)] + bins[np.argmin(lower_half) + 1])/2
     pos_err = (bins[max_ind + np.argmin(upper_half)] + bins[max_ind + np.argmin(upper_half) + 1])/2-pred_max
 
-    return pred_max, neg_err, pos_err, pred_mean
+    return pred_max, neg_err, pos_err, pred_mean, pred_stddev
 
 
 def mean_above_threshold(norm_prob, bins, threshold):
@@ -49,13 +50,17 @@ def mean_above_threshold(norm_prob, bins, threshold):
 ### MAIN CALLS ###
 
 # Load training and testing data from csv files that include also the predicted delta T values made when the model is applied
-df_train = pd.read_csv('../training_data_with_prediction_example.csv')
-df_test = pd.read_csv('../testing_data_with_prediction_example.csv')
+df_train = pd.read_csv('../training_data_with_prediction_4G0.csv')
+df_test = pd.read_csv('../testing_data_with_prediction_4G0.csv')
+
+# Record number of points in each dataset
+train_set_size = df_train.shape[0]
+test_set_size = df_test.shape[0]
 
 # Plot the predicted vs true values from the training set
 plt.figure()
 plt.subplot(1,2,1)
-plt.scatter(df_train['DeltaT'], df_train['DeltaT_pred'], alpha=0.15) # undo scaling
+plt.scatter(df_train['DeltaT'], df_train['DeltaT_pred'], alpha=0.1) # undo scaling
 plt.xlabel('True ∆T')
 plt.ylabel('Predicted ∆T')
 plt.title('Training set')
@@ -63,7 +68,7 @@ plt.plot([0,30], [0,30])
 plt.text(5,-0.03,'MAE = '+str(round(np.mean(np.abs(df_train['DeltaT_pred'] - df_train['DeltaT'])),2)))
 
 plt.subplot(1,2,2)
-plt.scatter(df_test['DeltaT'], df_test['DeltaT_pred'], alpha=0.25) # Undo scaling
+plt.scatter(df_test['DeltaT'], df_test['DeltaT_pred'], alpha=0.1) # Undo scaling
 plt.xlabel('True ∆T')
 #plt.ylabel('Predicted ∆T')
 plt.title('Testing set')
@@ -90,10 +95,10 @@ if plot_errorbars:
     for unique_dT in unique_dT_vals_train:
         try:
             # Identify peak value and values at both half maxes of delta T
-            pred_max, neg_err, pos_err, pred_mean = half_max_unique_val(unique_dT,  deltaT_train, deltaT_predicted_train) 
+            pred_max, neg_err, pos_err, pred_mean, pred_stddev = stats_unique_val(unique_dT,  deltaT_train, deltaT_predicted_train) 
 
             # Plot a point with error bars representing the FWHM amongst predicted value at each true value of delta T
-            plt.errorbar(unique_dT, pred_max, yerr=np.array([[neg_err, pos_err]]).T, capsize=3, fmt="r--o", ecolor = "black")
+            plt.errorbar(unique_dT, pred_mean, yerr=np.array([[0.5*pred_stddev, 0.5*pred_stddev]]).T, capsize=3, fmt="g--o", ecolor = "black", mec='black')
         except:
             True
 
@@ -104,10 +109,10 @@ if plot_errorbars:
     for unique_dT in unique_dT_vals_test:
         try:
         # Identify peak value and values at both half maxes of delta T based on the test data
-            pred_max, neg_err, pos_err, pred_mean = half_max_unique_val(unique_dT,  deltaT_test, deltaT_predicted_test) 
+            pred_max, neg_err, pos_err, pred_mean, pred_stddev = stats_unique_val(unique_dT,  deltaT_test, deltaT_predicted_test) 
 
             # Plot a point with error bars representing the FWHM amongst predicted value at each true value of delta T
-            plt.errorbar(unique_dT, pred_max, yerr=np.array([[neg_err, pos_err]]).T, capsize=3, fmt="r--o", ecolor = "black")
+            plt.errorbar(unique_dT, pred_mean, yerr=np.array([[0.5*pred_stddev, 0.5*pred_stddev]]).T, capsize=3, fmt="g--o", ecolor="black", mec='black')
         except:
             True
 
@@ -145,7 +150,7 @@ for i in range(len(dT_indices_train)):
         axs[int(i>2), i%3].set_ylabel("Normalized Probability")
 
 
-fig2.suptitle("Synthetic data - performance on training set")
+fig2.suptitle("Synthetic data - performance on training set ("+str(train_set_size)+" points)")
 
 
 # Now for the test data
@@ -176,7 +181,7 @@ for i in range(len(dT_indices_test)):
     if i%3==0:
         axs[int(i>2), i%3].set_ylabel("Normalized Probability")
 
-fig3.suptitle("Experimental data - performance on testing set")
+fig3.suptitle("Experimental data - performance on testing set ("+str(test_set_size)+" points)")
 
 
 plt.show()

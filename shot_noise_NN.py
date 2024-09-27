@@ -60,9 +60,10 @@ save_predictions = True
 
 # Read delta T shot noise data
 # Use the following lines if we want to train on synthetic data and test on real data
-df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise.csv')
+df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise_4G0.csv')
 df_test = pd.read_csv('../GNoiseData_complete.csv')
 df_test = df_test[df_test['DeltaT']>0.5] # For now, drop the experimental data points with deltaT close to 0 - this case is not handled in the synthetic training data
+df_test = df_test[df_test['G']<4] # Keep only the points with G values in the range used for training
 
 # # Use the following lines if we want to train and test on the synthetic data only
 # # Train/test split (80 % of data in training set) - commented out when we use split by synthetic/experimental instead
@@ -99,7 +100,7 @@ callback = keras.callbacks.LearningRateScheduler(scheduler) # Define callback to
 model.compile(optimizer = keras.optimizers.Adam(),
               loss=loss_fn,
               metrics=['MeanSquaredError','RootMeanSquaredError'])
-model.fit(X_train, y_train, epochs=50, verbose=2, callbacks=[])
+model.fit(X_train, y_train, epochs=75, verbose=2, callbacks=[])
 
 # Get delta T predictions from the model, multiply by T to undo scaling
 y_predicted_train = model.predict(X_train)[:,0]
@@ -125,5 +126,5 @@ df_train['DeltaT_pred'] = deltaT_predicted_train
 df_test['DeltaT_pred'] = deltaT_predicted_test
 
 # Write to csv
-df_train.to_csv("../training_data_with_prediction_example.csv")
-df_test.to_csv("../testing_data_with_prediction_example.csv")
+df_train.to_csv("../training_data_with_prediction_4G0.csv")
+df_test.to_csv("../testing_data_with_prediction_4G0.csv")
