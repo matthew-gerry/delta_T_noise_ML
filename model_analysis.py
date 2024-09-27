@@ -98,7 +98,7 @@ if plot_errorbars:
             pred_max, neg_err, pos_err, pred_mean, pred_stddev = stats_unique_val(unique_dT,  deltaT_train, deltaT_predicted_train) 
 
             # Plot a point with error bars representing the FWHM amongst predicted value at each true value of delta T
-            plt.errorbar(unique_dT, pred_mean, yerr=np.array([[0.5*pred_stddev, 0.5*pred_stddev]]).T, capsize=3, fmt="g--o", ecolor = "black", mec='black')
+            plt.errorbar(unique_dT, pred_mean, yerr=np.array([[pred_stddev, pred_stddev]]).T, capsize=3, fmt="g--o", ecolor = "black", mec='black')
         except:
             True
 
@@ -112,7 +112,7 @@ if plot_errorbars:
             pred_max, neg_err, pos_err, pred_mean, pred_stddev = stats_unique_val(unique_dT,  deltaT_test, deltaT_predicted_test) 
 
             # Plot a point with error bars representing the FWHM amongst predicted value at each true value of delta T
-            plt.errorbar(unique_dT, pred_mean, yerr=np.array([[0.5*pred_stddev, 0.5*pred_stddev]]).T, capsize=3, fmt="g--o", ecolor="black", mec='black')
+            plt.errorbar(unique_dT, pred_mean, yerr=np.array([[pred_stddev, pred_stddev]]).T, capsize=3, fmt="g--o", ecolor="black", mec='black')
         except:
             True
 
