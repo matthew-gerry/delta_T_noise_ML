@@ -22,7 +22,7 @@ from keras import layers as kl
 
 ### CONSTANTS ###
 
-g0 = 7.748092*10**(-5) # C^2/J/s, conductance quantum
+G0 = 7.748092*10**(-5) # C^2/J/s, conductance quantum
 kB = 1.380649*10**(-23) # J/K, Boltzmann constant
 
 
@@ -56,14 +56,15 @@ def scheduler(epoch, lr):
 
 ### MAIN CALLS ###
 
-save_predictions = True
+max_G = 4.0 # Maximum conductance value used in training
+model_name = "../model_" + str(int(max_G)) + "G0_without_T.keras"
 
 # Read delta T shot noise data
 # Use the following lines if we want to train on synthetic data and test on real data
 df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise_4G0.csv')
 df_test = pd.read_csv('../GNoiseData_complete.csv')
-df_test = df_test[df_test['DeltaT']>0.5] # For now, drop the experimental data points with deltaT close to 0 - this case is not handled in the synthetic training data
-df_test = df_test[df_test['G']<4] # Keep only the points with G values in the range used for training
+df_test = df_test[df_test['DeltaT']>  0.5] # For now, drop the experimental data points with deltaT close to 0 - this case is not handled in the synthetic training data
+df_test = df_test[df_test['G'] < max_G] # Keep only the points with G values in the range used for training
 
 # # Use the following lines if we want to train and test on the synthetic data only
 # # Train/test split (80 % of data in training set) - commented out when we use split by synthetic/experimental instead
@@ -73,10 +74,10 @@ df_test = df_test[df_test['G']<4] # Keep only the points with G values in the ra
 
 # Rescale data (G already scaled by G0)
 df_train['DeltaT'] = df_train['DeltaT']/df_train['T']
-df_train['S'] = df_train['S']/(g0 * kB * df_train['T'])
+df_train['S'] = df_train['S']/(G0 * kB * df_train['T'])
 
 df_test['DeltaT'] = df_test['DeltaT']/df_test['T']
-df_test['S'] = df_test['S']/(g0 * kB * df_test['T'])
+df_test['S'] = df_test['S']/(G0 * kB * df_test['T'])
 
 # Set up numpy arrays for use with Keras network
 X_train = df_train.drop(['DeltaT','S_full', 'T'], axis=1).to_numpy()
@@ -102,29 +103,5 @@ model.compile(optimizer = keras.optimizers.Adam(),
               metrics=['MeanSquaredError','RootMeanSquaredError'])
 model.fit(X_train, y_train, epochs=75, verbose=2, callbacks=[])
 
-# Get delta T predictions from the model, multiply by T to undo scaling
-y_predicted_train = model.predict(X_train)[:,0]
-deltaT_predicted_train = y_predicted_train*T_train
 
-
-# On the other subplot, plot the true and predicted values based on the test data
-# Similarly pass the testing data features through the model and remove the scaling, recover the true values
-y_predicted_test = model.predict(X_test)[:,0]
-deltaT_predicted_test = y_predicted_test*T_test
-
-
-# Undo scaling of Delta T by T
-df_train['DeltaT'] = df_train['DeltaT']*df_train['T']
-df_test['DeltaT'] = df_test['DeltaT']*df_test['T']
-
-# Similarly undo scaling of S
-df_train['S'] = df_train['S'] * (g0 * kB * df_train['T'])
-df_test['S'] = df_test['S'] * (g0 * kB * df_test['T'])
-
-# Save predicted Delta T values to the DataFrame
-df_train['DeltaT_pred'] = deltaT_predicted_train
-df_test['DeltaT_pred'] = deltaT_predicted_test
-
-# Write to csv
-df_train.to_csv("../training_data_with_prediction_4G0.csv")
-df_test.to_csv("../testing_data_with_prediction_4G0.csv")
+model.save(model_name)

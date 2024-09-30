@@ -12,6 +12,16 @@ matplotlib.rcParams.update({'font.size': 11})
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from tensorflow import keras
+from keras import saving
+
+
+### CONSTANTS ###
+
+G0 = 7.748092*10**(-5) # C^2/J/s, conductance quantum
+kB = 1.380649*10**(-23) # J/K, Boltzmann constant
+
+
 ### FUNCTIONS ###
 
 def stats_unique_val(unique_val, true_vals, predicted_vals):
@@ -49,18 +59,72 @@ def mean_above_threshold(norm_prob, bins, threshold):
 
 ### MAIN CALLS ###
 
-# Load training and testing data from csv files that include also the predicted delta T values made when the model is applied
-df_train = pd.read_csv('../training_data_with_prediction_4G0.csv')
-df_test = pd.read_csv('../testing_data_with_prediction_4G0.csv')
+# Identify model to load in based on maximum conductance used in training
+max_G = 1.0 # Maximum conductance value used in training
+model_name = "../model_" + str(int(max_G)) + "G0_without_T.keras"
+
+save_predictions = False # Toggle saving of new csv that includes the experimental data and predicted values
+
+# # Load training and testing data from csv files that include also the predicted delta T values made when the model is applied
+# df_train = pd.read_csv('../training_data_with_prediction_4G0.csv')
+# df_test = pd.read_csv('../testing_data_with_prediction_4G0.csv')
+
+# Load testing data as well as training data used for fitting the model
+df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise_4G0.csv')
+df_test = pd.read_csv('../GNoiseData_complete.csv')
+df_test = df_test[df_test['DeltaT'] > 0.5] # For now, drop the experimental data points with deltaT close to 0 - this case is not handled in the synthetic training data
+df_test = df_test[df_test['G'] < max_G] # Keep only the points with G values in the range used for training
 
 # Record number of points in each dataset
 train_set_size = df_train.shape[0]
 test_set_size = df_test.shape[0]
 
+# Rescale data as done in fitting (G already scaled by G0)
+df_train['DeltaT'] = df_train['DeltaT']/df_train['T']
+df_train['S'] = df_train['S']/(G0 * kB * df_train['T'])
+
+df_test['DeltaT'] = df_test['DeltaT']/df_test['T']
+df_test['S'] = df_test['S']/(G0 * kB * df_test['T'])
+
+# Isolate features and target values
+X_train = df_train.drop(['DeltaT','S_full', 'T'], axis=1).to_numpy()
+y_train = df_train['DeltaT'].to_numpy()
+T_train = df_train['T'].to_numpy() # Save average temperature values in a separate array
+
+X_test = df_test.drop(['DeltaT', 'T'], axis=1).to_numpy()
+y_test= df_test['DeltaT'].to_numpy()
+T_test = df_test['T'].to_numpy() # Save average temperature values in a separate array
+
+
+# Load the model--ensure it agrees with the training data file imported above
+model = saving.load_model(model_name)
+
+# Get delta T predictions from the model on both the training and test set, multiply by T to undo scaling, write to DataFrames
+y_predicted_train = model.predict(X_train)[:,0]
+df_train['DeltaT_pred'] = y_predicted_train*T_train
+
+y_predicted_test = model.predict(X_test)[:,0]
+df_test['DeltaT_pred'] = y_predicted_test*T_test
+
+# Undo scaling of Delta T by T
+df_train['DeltaT'] = df_train['DeltaT']*df_train['T']
+df_test['DeltaT'] = df_test['DeltaT']*df_test['T']
+
+# Similarly undo scaling of S
+df_train['S'] = df_train['S'] * (G0 * kB * df_train['T'])
+df_test['S'] = df_test['S'] * (G0 * kB * df_test['T'])
+
+
+if save_predictions:
+    # If desired, save a new CSV that includes the predicted values
+    df_train.to_csv("../training_data_with_prediction_4G0.csv")
+    df_test.to_csv("../testing_data_with_prediction_4G0.csv")
+
+
 # Plot the predicted vs true values from the training set
 plt.figure()
 plt.subplot(1,2,1)
-plt.scatter(df_train['DeltaT'], df_train['DeltaT_pred'], alpha=0.1) # undo scaling
+plt.scatter(df_train['DeltaT'], df_train['DeltaT_pred'], color='red', alpha=0.1) # undo scaling
 plt.xlabel('True ∆T')
 plt.ylabel('Predicted ∆T')
 plt.title('Training set')
@@ -68,7 +132,7 @@ plt.plot([0,30], [0,30])
 plt.text(5,-0.03,'MAE = '+str(round(np.mean(np.abs(df_train['DeltaT_pred'] - df_train['DeltaT'])),2)))
 
 plt.subplot(1,2,2)
-plt.scatter(df_test['DeltaT'], df_test['DeltaT_pred'], alpha=0.1) # Undo scaling
+plt.scatter(df_test['DeltaT'], df_test['DeltaT_pred'], color='red', alpha=0.1) # Undo scaling
 plt.xlabel('True ∆T')
 #plt.ylabel('Predicted ∆T')
 plt.title('Testing set')
