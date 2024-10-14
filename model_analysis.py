@@ -60,8 +60,10 @@ def mean_above_threshold(norm_prob, bins, threshold):
 ### MAIN CALLS ###
 
 # Identify model to load in based on maximum conductance used in training
-max_G = 1.0 # Maximum conductance value used in training
-model_name = "../model_" + str(int(max_G)) + "G0_without_T.keras"
+max_G = 4.0 # Maximum conductance value used in training
+# model_name = "../model_" + str(int(max_G)) + "G0_without_T.keras"
+model_label = "Pmodel_4G0_uT"
+model_name = "Models/" + model_label + ".keras"
 
 save_predictions = False # Toggle saving of new csv that includes the experimental data and predicted values
 
@@ -70,8 +72,9 @@ save_predictions = False # Toggle saving of new csv that includes the experiment
 # df_test = pd.read_csv('../testing_data_with_prediction_4G0.csv')
 
 # Load testing data as well as training data used for fitting the model
-df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise_4G0.csv')
-df_test = pd.read_csv('../GNoiseData_complete.csv')
+# df_train = pd.read_csv('../synthetic_data_deltaT_shot_noise_4G0.csv')
+df_train = pd.read_csv("Models/SynP_4G0_uT.csv")
+df_test = pd.read_csv("../GNoiseData_complete.csv")
 df_test = df_test[df_test['DeltaT'] > 0.5] # For now, drop the experimental data points with deltaT close to 0 - this case is not handled in the synthetic training data
 df_test = df_test[df_test['G'] < max_G] # Keep only the points with G values in the range used for training
 
@@ -87,11 +90,11 @@ df_test['DeltaT'] = df_test['DeltaT']/df_test['T']
 df_test['S'] = df_test['S']/(G0 * kB * df_test['T'])
 
 # Isolate features and target values
-X_train = df_train.drop(['DeltaT','S_full', 'T'], axis=1).to_numpy()
+X_train = df_train.drop(['DeltaT','S_full'], axis=1).to_numpy()
 y_train = df_train['DeltaT'].to_numpy()
 T_train = df_train['T'].to_numpy() # Save average temperature values in a separate array
 
-X_test = df_test.drop(['DeltaT', 'T'], axis=1).to_numpy()
+X_test = df_test.drop(['DeltaT'], axis=1).to_numpy()
 y_test= df_test['DeltaT'].to_numpy()
 T_test = df_test['T'].to_numpy() # Save average temperature values in a separate array
 
@@ -183,7 +186,7 @@ if plot_errorbars:
 
 # Now plot histograms of the predicted values at a selection of true values, for both training and test sets
 # Choose a set of indices at which to select out unique delta T values (training data)
-dT_indices_train = [0, 4, 8, 12, 15, 19]
+dT_indices_train = [0, 4, 8, 10, 12, 15]
 
 # Minimum probably to be included in secondary mean calculation
 threshold = 0.02
