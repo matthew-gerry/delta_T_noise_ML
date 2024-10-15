@@ -153,7 +153,7 @@ np.random.seed(1) # Set random seed for reproducibility
 # Set paramaters for generating data
 Gmax = 4.0 # Maximum conductance (scaled by G_0)
 x_av = 0.1 # Average value of quantity x characterizing channel opening
-num_points_at_temp = 1500 # Number of data points to generate at each T, delta T pair
+num_points_at_temp = 500 # Number of data points to generate at each T, delta T pair
 
 # Parameterize the maximum channel transmissions
 tau_max_list = [1, 0.8, 0.6, 0.4]
@@ -163,14 +163,28 @@ tau_noise = 0.1
 Tmin = 10 # Minimum temperature value
 Tmax = 25 # Maximum temperature value
 num_temps = 20 # Number of different temperature values to use
-deltaT_over_T_range = [0.2, 1.8] # Range to which deltaT/T is restricted (bounds of a subinterval of the interval from 0 to 2)
+deltaT_over_T_range = [0.2, 2.0] # Range to which deltaT/T is restricted (bounds of a subinterval of the interval from 0 to 2)
 
-# Based on the parameter values above, generate several random T-DeltaT pairs
-T_vals = Tmin + (Tmax - Tmin)*np.random.rand(num_temps) # Specified amount of random temperature values between Tmin and Tmax
-deltaT_vals = np.zeros(len(T_vals))
-for i in range(len(T_vals)):
-    T = T_vals[i]
-    deltaT_vals[i] = np.random.uniform(deltaT_over_T_range[0]*T, deltaT_over_T_range[1]*T)
+# Generate a uniform grid of delta T-T pairs throughout the region specified above
+T_vals = []
+deltaT_vals = []
+T_grid_num = 5
+T_list0 = np.linspace(10,25,num=T_grid_num)
+
+for i in range(T_grid_num):
+  
+  T = np.repeat(T_list0[i],i+2)
+  T_vals = np.concatenate((T_vals,T))
+  
+  dT = np.linspace(5,2*max(T),num=i+2)
+  deltaT_vals = np.concatenate((deltaT_vals,dT))
+
+# # Based on the parameter values above, generate several random T-DeltaT pairs
+# T_vals = Tmin + (Tmax - Tmin)*np.random.rand(num_temps) # Specified amount of random temperature values between Tmin and Tmax
+# deltaT_vals = np.zeros(len(T_vals))
+# for i in range(len(T_vals)):
+#     T = T_vals[i]
+#     deltaT_vals[i] = np.random.uniform(deltaT_over_T_range[0]*T, deltaT_over_T_range[1]*T)
 
 
 # Generate the synthetic G and S data
@@ -200,8 +214,9 @@ for i in range(len(T_vals)):
     df = pd.concat([df, df_temp])
 
 
-# Save the synthetic data to a csv file
-df.to_csv("../synthetic_data_deltaT_shot_noise.csv", index=False)
+# # Save the synthetic data to a csv file
+# filename = 'Models/SynIP_' + str(int(Gmax)) + 'G0_uT.csv'
+# df.to_csv(filename, index=False)
 
 # Dimensionless quantity representing the shot noise but still with temperature dependence (in contrast to the output of the function generate_data)
 df['S_scaled'] = df['S']/(G0 * kB * df['T'])
@@ -210,19 +225,32 @@ df['S_full_scaled'] = df['S_full']/(G0 * kB * df['T'])
 # df = df[df['T']<8.0]
 
 # Visualize the synthetic data in a scatter plot
-# Start with T vs Delta T
+# Start with T vs Delta T - include also the T/Delta T values from the experiment
+
+# Experimental temperatures
+df_exp = pd.read_csv('../GNoiseData_complete.csv')
+T_exp = df_exp['T'].unique()
+T_exp = np.insert(T_exp, [8, 8], [12.0, 15.0])
+dT_exp = df_exp['DeltaT'].unique()
 
 # For visualization purposes, draw lines that bound the region of T-deltaT space we are probing
 minline = deltaT_over_T_range[0]*np.linspace(0, 1.5*Tmax)
 maxline = deltaT_over_T_range[1]*np.linspace(0, 1.5*Tmax)
 
+# Plots
 fig1, ax1 = plt.subplots()
-ax1.scatter(T_vals, deltaT_vals, marker='.', color='k')
-ax1.plot(np.linspace(0, 1.5*Tmax), minline, color='blue')
-ax1.plot(np.linspace(0, 1.5*Tmax), maxline, color='blue')
-ax1.vlines([Tmin, Tmax], 0, 2*Tmax, colors='red')
+ax1.scatter(T_vals, deltaT_vals, marker='o', color='k')
+ax1.scatter(T_exp, dT_exp, marker='o', color='c')
+ax1.plot(np.linspace(0, 1.5*Tmax), minline, linestyle='--', color='blue')
+ax1.plot(np.linspace(0, 1.5*Tmax), np.linspace(0, 1.5*Tmax), linestyle='--', color='c')
+ax1.plot(np.linspace(0, 1.5*Tmax), maxline, linestyle='--', color='blue')
+ax1.vlines([Tmin, Tmax], 0, 2*Tmax, linestyle='--', color='red')
 ax1.set_xlabel('$T$')
 ax1.set_ylabel('$\Delta T$')
+ax1.legend(['Synthetic', 'Experiment'])
+ax1.text(25.3,7,'$\Delta T = $' + str(deltaT_over_T_range[0]) + '$T$', color='b')
+ax1.text(25.3,28,'$\Delta T = T$', color='c')
+ax1.text(21.5,46,'$\Delta T = $' + str(deltaT_over_T_range[1]) + '$T$', color='b')
 ax1.set_xlim([0, 1.1*Tmax])
 ax1.set_ylim([0, 2*Tmax])
 
@@ -265,4 +293,30 @@ ax.set_xlabel("$G$ (input)")
 ax.set_ylabel(r"$\tau_n$")
 ax.set_ylim([0, 1.05])
 ax.set_xlim([0, 3.9])
+plt.show()
+
+
+# One polished figure with the sythetic data and channel opening protocol
+fig4, ax = plt.subplots()
+sctr = ax.scatter(df['G'], df['S_scaled'], s=0.4, c=df['DeltaT']/df['T'])
+ax.set_xlim([0, Gmax])
+ax.set_ylim([0, 2.5])
+ax.set_xlabel('$G/G_0$')
+ax.set_ylabel('$S/G_0k_BT$')
+plt.colorbar(sctr, label='$\Delta T/T$')
+
+# Channel opening protocal in inset
+axins = fig4.add_axes([0.217, 0.52, 0.32, 0.33])
+for i in range(len(tau_result[:, 0])):
+    axins.plot(G_list, tau_result[i, :])
+
+    tau_lower = max(tau_result[i, :]) - tau_noise # Lower bound of the max transmission for each channel
+
+    axins.fill_between(G_list, tau_lower, tau_result[i, :], alpha=0.2, where=tau_result[i,:] > tau_lower)
+axins.set_xlabel("$G$ (input)", fontsize=11)
+axins.set_ylabel(r"$\tau_n$", fontsize=11)
+axins.tick_params(axis='x', labelsize=10)
+axins.tick_params(axis='y', labelsize=10)
+axins.set_ylim([0, 1.05])
+axins.set_xlim([0, 3.9])
 plt.show()
