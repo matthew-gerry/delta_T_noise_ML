@@ -12,6 +12,13 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+# Set pyplot global params to get nice fonts
+plt.rcParams["mathtext.fontset"] = "cm" # Match Latex font as closely as possible
+plt.rcParams['font.size'] = '14' # Globally set font size of plots
+plt.rcParams["font.family"] = "serif"
+plt.rcParams['font.serif'] = ['cmr10']
+plt.rcParams['axes.unicode_minus'] = False # NEEDED FOR MINUS SIGNS TO RENDER PROPERLY but can't give me back that hour of my life in 2021
+
 
 ### CONSTANTS ###
 
