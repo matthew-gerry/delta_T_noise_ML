@@ -14,6 +14,13 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+# Set pyplot global params to get nice fonts
+plt.rcParams["mathtext.fontset"] = "cm" # Match Latex font as closely as possible
+plt.rcParams['font.size'] = '14' # Globally set font size of plots
+plt.rcParams["font.family"] = "serif"
+plt.rcParams['font.serif'] = ['cmr10']
+plt.rcParams['axes.unicode_minus'] = False # NEEDED FOR MINUS SIGNS TO RENDER PROPERLY but can't give me back that hour of my life in 2021
+
 from math import pi, sqrt
 from scipy.optimize import curve_fit
 
@@ -129,19 +136,39 @@ plt.show()
 
 
 # Fit S - G data to a line for G>G_0 to try and infer the limit to which channels after the first open and then stop
-dflin = df[df['G'] >= 1]
-dflin['s'] = dflin['S']/(G0 * kB * (pi**2/9 - 2/3) * dflin['DeltaT']**2 / dflin['T'])
+# dflin = df[df['G'] >= 1]
+# dflin['s'] = dflin['S']/(G0 * kB * (pi**2/9 - 2/3) * dflin['DeltaT']**2 / dflin['T'])
 
-# Helps to remove outliers for the fit
-dflin = dflin[dflin['s'] > 0]
-dflin = dflin[dflin['s'] < 5]
+# # Helps to remove outliers for the fit
+# dflin = dflin[dflin['s'] > 0]
+# dflin = dflin[dflin['s'] < 5]
 
-dflin = dflin.sort_values('G')
+# dflin = dflin.sort_values('G')
 
-popt_lin, pcov_lin = curve_fit(s_linear, dflin['G'], dflin['s'])
-print(popt_lin[0])
+# popt_lin, pcov_lin = curve_fit(s_linear, dflin['G'], dflin['s'])
+# print(popt_lin[0])
 
 
-plt.plot(dflin['G'], dflin['s'], marker='.')
-plt.plot(dflin['G'], s_linear(dflin['G'], popt_lin[0]), color='orange')
+# plt.plot(dflin['G'], dflin['s'], marker='.')
+# plt.plot(dflin['G'], s_linear(dflin['G'], popt_lin[0]), color='orange')
+# plt.show()
+
+
+
+# Create a plot of the approximation of x for all temperature values
+fig1, ax1 = plt.subplots()
+x_av = df2['x'].mean() # Average x at each T value
+x_av = round(x_av, 3)
+count = df2.shape[0] # Number of valid data points at this T value
+
+# Plot a histogram of all x values at the given T value
+counts, bins = np.histogram(df2_temp['x'], bins=50, density=True)
+bin_centres = np.array([x + 0.5*(bins[1] - bins[0]) for x in bins[:-1]])
+bin_centres = bin_centres.astype('float')
+ax1.hist(df2['x'], bins=50, density=True)
+x_av = 0.1
+ax1.plot(np.linspace(0,0.5,50), np.exp(-np.linspace(0,0.5,50)/x_av)/x_av, color='orange')
+ax1.set_xlabel(r"$x=\tau_2G_0/G$")
+ax1.set_ylabel("Probability density")
+ax1.set_xlim([0,0.5])
 plt.show()

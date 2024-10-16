@@ -302,8 +302,8 @@ sctr = ax.scatter(df['G'], df['S_scaled'], s=0.4, c=df['DeltaT']/df['T'])
 ax.set_xlim([0, Gmax])
 ax.set_ylim([0, 2.5])
 ax.set_xlabel('$G/G_0$')
-ax.set_ylabel('$S/G_0k_BT$')
-plt.colorbar(sctr, label='$\Delta T/T$')
+ax.set_ylabel(r'$S/G_0k_B\bar{T}$')
+plt.colorbar(sctr, label=r'$\Delta T/\bar{T}$')
 
 # Channel opening protocal in inset
 axins = fig4.add_axes([0.217, 0.52, 0.32, 0.33])
@@ -313,8 +313,8 @@ for i in range(len(tau_result[:, 0])):
     tau_lower = max(tau_result[i, :]) - tau_noise # Lower bound of the max transmission for each channel
 
     axins.fill_between(G_list, tau_lower, tau_result[i, :], alpha=0.2, where=tau_result[i,:] > tau_lower)
-axins.set_xlabel("$G$ (input)", fontsize=11)
-axins.set_ylabel(r"$\tau_n$", fontsize=11)
+axins.set_xlabel("$G/G_0$ (input)", fontsize=12)
+axins.set_ylabel(r"$\tau_n$", fontsize=12)
 axins.tick_params(axis='x', labelsize=10)
 axins.tick_params(axis='y', labelsize=10)
 axins.set_ylim([0, 1.05])
