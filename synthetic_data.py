@@ -314,7 +314,7 @@ for i in range(len(tau_result[:, 0])):
 
     axins.fill_between(G_list, tau_lower, tau_result[i, :], alpha=0.2, where=tau_result[i,:] > tau_lower)
 axins.set_xlabel("$G/G_0$ (input)", fontsize=12)
-axins.set_ylabel(r"$\tau_n$", fontsize=12)
+axins.set_ylabel(r"$\tau_i$", fontsize=12)
 axins.tick_params(axis='x', labelsize=10)
 axins.tick_params(axis='y', labelsize=10)
 axins.set_ylim([0, 1.05])
