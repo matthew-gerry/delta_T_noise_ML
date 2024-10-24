@@ -302,7 +302,7 @@ sctr = ax.scatter(df['G'], df['S_scaled'], s=0.4, c=df['DeltaT']/df['T'])
 ax.set_xlim([0, Gmax])
 ax.set_ylim([0, 2.5])
 ax.set_xlabel('$G/G_0$')
-ax.set_ylabel(r'$S/G_0k_B\bar{T}$')
+ax.set_ylabel(r'$S_{\Delta T}/G_0k_B\bar{T}$')
 plt.colorbar(sctr, label=r'$\Delta T/\bar{T}$')
 
 # Channel opening protocal in inset
