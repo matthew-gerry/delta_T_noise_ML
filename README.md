@@ -8,4 +8,4 @@ This repository includes a program that trains a neural network (using Keras) to
 
 Additional scripts are used to visualize the experimental data, explore how transmission channels open sequentially, and generate additional synethetic data with hopes of utilizing it in the training of the model.
 
-The ongoing work is a collaboration with Jonathan J. Wang, Joanna Li, and Dvira Segal.
+The work, a collaboration with Jonathan J. Wang, Joanna Li, and Dvira Segal, has been published in J. Chem. Phys., available at https://doi.org/10.1063/5.0250879.
